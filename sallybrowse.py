@@ -7,7 +7,7 @@ from grp import getgrgid
 from subprocess import Popen, PIPE
 from zipstream import ZipFile, ZIP_DEFLATED
 from humanize import naturalsize
-from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify
+from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect
 from magic import Magic
 from extensions import BaseExtension
 
@@ -17,9 +17,10 @@ ARG_EXTRA_DIR_INFO = "extradirinfo"
 ARG_DOWNLOAD_ALAW_TO_WAV = "alaw2wavdl"
 ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
 EXTENSION_DIR = "extensions"
-SERVE_DIRECTORIES = (
+COMMON_ROOT = None # Do not change
+SERVE_DIRECTORIES = tuple(
 	# Put the directories you wish to serve here.
-	"/",
+	# If left empty, all directories (/) will be served.
 )
 
 app = Flask(__name__, static_url_path = "/static")
@@ -262,7 +263,10 @@ def browse(*args, **kwargs):
 	if not os.path.isabs(request.path):
 		abort(403)
 
-	if not request.path.startswith(SERVE_DIRECTORIES):
+	if not request.path.startswith(COMMON_ROOT):
+		if request.path == "/":
+			return redirect(COMMON_ROOT)
+
 		abort(403)
 
 	if os.path.exists(request.path):
@@ -277,6 +281,9 @@ def browse(*args, **kwargs):
 				return getExtraDirInfo()
 
 			return browseDir()
+
+		if not request.path.startswith(SERVE_DIRECTORIES):
+			abort(403)
 
 		if ARG_DOWNLOAD in request.args:
 			return downloadFile()
@@ -293,6 +300,52 @@ def browse(*args, **kwargs):
 		return previewFile()
 
 	abort(404)
+
+@app.before_first_request
+def setupCommonRoot():
+	global COMMON_ROOT
+	global SERVE_DIRECTORIES
+
+	if len(SERVE_DIRECTORIES) == 0:
+		SERVE_DIRECTORIES = ("/",)
+		COMMON_ROOT = "/"
+
+		return
+
+	else:
+		SERVE_DIRECTORIES = tuple([os.path.abspath(d) for d in SERVE_DIRECTORIES])
+
+	partsList = []
+
+	for d in SERVE_DIRECTORIES:
+		partsList.append(d.split("/"))
+
+	i = 0
+	commonParts = []
+
+	while True:
+		part = None
+
+		for parts in partsList:
+			if i >= len(parts):
+				break
+
+			if part is None:
+				part = parts[i]
+
+			elif part != parts[i]:
+				break
+
+		else:
+			commonParts.append(part)
+
+			i += 1
+			
+			continue
+
+		break
+
+	COMMON_ROOT = "/".join(commonParts) or "/"
 
 @app.before_first_request
 def loadExtensions():
