@@ -1,6 +1,6 @@
 <html>
 	<head>
-		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined">
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 		<style>
@@ -306,7 +306,18 @@
 				<tbody>
 					{% for entry in entries %}
 					<tr>
-						{% set path = (request.path + "/" + entry['name']).replace("//", "/") %}
+						{% set path = (request.path + "/" + entry["name"]).replace("//", "/") %}
+						{% if "broken link" in entry["type"] %}
+						{% set typeIcon = "link_off" %}
+						{% elif "link" in entry["type"] %}
+						{% set typeIcon = "link" %}
+						{% elif "directory" in entry["type"] %}
+						{% set typeIcon = "folder" %}
+						{% elif "file" in entry["type"] %}
+						{% set typeIcon = "insert_drive_file" %}
+						{% else %}
+						{% set typeIcon = "warning" %}
+						{% endif %}
 						<td class="shrinkColumn" style="width: 1px; white-space: nowrap">
 							<a href="{{ path }}?dl" style="margin: 0 10px">
 								<i class="material-icons" title="Download">cloud_download</i>
@@ -314,8 +325,10 @@
 							<i class="material-icons copyEntry" title="Copy path">file_copy</i>
 							<i class="material-icons infoEntry" title="Info" style="margin: 0 10px">info</i>
 						</td>
-						<td class="nameColumn"><a class="name" href="{{ path }}"
-								title="{{ path }}">{{ entry["name"] }}</a></td>
+						<td class="nameColumn"><i class="material-icons-outlined"
+								title="{{ entry['type'] }}">{{ typeIcon }}</i><a class="name" href="{{ path }}"
+								title="{{ path }}">{{ entry["name"] }}</a>
+						</td>
 						<td class="shrinkColumn" title="{{ entry['bytes'] }}">{{ entry["size"] }}</td>
 						<td class="shrinkColumn">{{ entry["type"] }}</td>
 					</tr>
