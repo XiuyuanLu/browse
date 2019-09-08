@@ -1,0 +1,342 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<style>
+			* {
+				font-size: +105%;
+			}
+
+			#preview,
+			#info {
+				visibility: hidden;
+			}
+
+			#previewFrame {
+				position: absolute;
+				top: 10%;
+				left: 10%;
+				width: 80%;
+				height: 80%;
+				background: white;
+				margin: 0;
+				border: 2px solid black;
+				display: block;
+			}
+
+			#infoFrame {
+				position: absolute;
+				top: calc(50% - 200px);
+				left: calc(50% - 300px);
+				width: 600px;
+				height: 400px;
+				background: white;
+				margin: 0;
+				border: 2px solid black;
+				display: block;
+			}
+
+			#previewHeader {
+				position: absolute;
+				height: 32px;
+				bottom: 90%;
+				left: 10%;
+				width: 80%;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				color: white;
+				background: black;
+				text-indent: 10px;
+			}
+
+			#infoHeader {
+				position: absolute;
+				height: 32px;
+				top: calc(50% - 232px);
+				left: calc(50% - 300px);
+				width: 600px;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				color: white;
+				background: black;
+				text-indent: 10px;
+			}
+
+			#previewTitle,
+			#infoTitle {
+				background: black;
+				color: white;
+				width: 100%;
+				font-size: 24px;
+				text-overflow: ellipsis;
+				overflow: hidden;
+				white-space: nowrap;
+			}
+
+			#previewClose,
+			#infoClose {
+				height: 100%;
+				float: left;
+				display: block;
+				opacity: 0.7;
+			}
+
+			#previewClose:hover,
+			#infoClose:hover {
+				opacity: 1;
+				cursor: pointer;
+			}
+
+			#content {
+				overflow-y: scroll;
+				height: calc(100% - 64px);
+				width: 100%;
+				padding-bottom: 20px;
+			}
+
+			#content table>thead>tr>th {
+				position: sticky;
+				top: 0;
+				background: white;
+			}
+
+			#content table>tbody>tr>td {
+				padding-top: 4px;
+				padding-bottom: 4px;
+			}
+
+			#content table>tbody>tr>td.nameColumn {
+				font-weight: bold;
+			}
+
+			#content table.highlight>tbody>tr:hover {
+				background-color: #f0f0f0;
+			}
+
+			.copyEntry:hover,
+			.infoEntry:hover {
+				cursor: pointer;
+			}
+
+			.shrinkColumn {
+				width: 1px;
+				white-space: nowrap;
+				padding: 0px 20px;
+			}
+
+		</style>
+		<script>
+			$(function () {
+				var parts = "{{ request.path }}".split("/")
+				var path = []
+
+				parts[0] = "/"
+
+				for (var part of parts) {
+					if (part === "") {
+						continue
+					}
+
+					if (part !== "/") {
+						path.push(part)
+					}
+
+					var crumb = $("<a>")
+
+					crumb.attr("href", "/" + path.join("/"))
+					crumb.addClass("breadcrumb")
+
+					if (part === "/") {
+						crumb.text("ROOT")
+					} else {
+						crumb.text(part)
+					}
+
+					$("#breadcrumbs").append(crumb)
+				}
+
+				$(".name").click(function (e) {
+					var type = $(e.target).parent().siblings().last().text()
+
+					if (type.indexOf("directory") >= 0) {
+						return
+					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
+						showPreview($(e.target))
+					}
+
+					e.preventDefault()
+				})
+
+				$("#previewClose").click(function (e) {
+					hidePreview()
+				})
+
+				$("#infoClose").click(function (e) {
+					hideInfo()
+				})
+
+				$(document).keydown(function (e) {
+					if (e.keyCode === 27) {
+						hidePreview()
+						hideInfo()
+					}
+				})
+
+				$(".copyEntry").click(function (e) {
+					var text = $(e.target).parent().parent().find(".nameColumn").text()
+
+					text = "{{ request.path }}/" + text
+					text = text.replace(/\/\//g, "/")
+
+					copy(text)
+				})
+
+				$(".infoEntry").click(function (e) {
+					var name = $(e.target).parent().parent().find(".name").text()
+
+					showInfo(("{{ request.path }}/" + name).replace(/\/\//g, "/"));
+				})
+
+				$(".copyCurrent").click(function (e) {
+					copy("{{ request.path }}")
+				})
+
+				$(".infoCurrent").click(function (e) {
+					showInfo("{{ request.path }}");
+				})
+			})
+
+			function copy(text) {
+				var path = $("<input>")
+
+				path.css("position", "absolute")
+				path.css("left", "-1000px")
+				path.css("top", "-1000px")
+
+				$("body").append(path)
+
+				path.val(text).select()
+
+				document.execCommand("copy")
+
+				path.remove()
+			}
+
+			function showPreview(target) {
+				var url = "{{ request.path }}".replace(/\/$/g, "") + "/" + target.text()
+
+				$("#previewTitle").text(target.text())
+				$("#previewTitle").attr("title", target.text())
+				$("#previewFrame").attr("src", url)
+				$("#preview").css("visibility", "visible")
+
+				document.getElementById("previewFrame").onload = function () {
+					$(document.getElementById("previewFrame").contentWindow.document).keydown(function (e) {
+						if (e.keyCode === 27) {
+							hidePreview()
+						}
+					})
+				}
+			}
+
+			function hidePreview() {
+				$("#previewTitle").text("")
+				$("#previewTitle").attr("title", "")
+				$("#previewFrame").attr("src", "")
+				$("#preview").css("visibility", "hidden")
+			}
+
+			function showInfo(path) {
+				var url = path + "?info"
+
+				$("#infoTitle").text(path)
+				$("#infoTitle").attr("title", path)
+				$("#infoFrame").attr("src", url)
+				$("#info").css("visibility", "visible")
+
+				document.getElementById("infoFrame").onload = function () {
+					$(document.getElementById("infoFrame").contentWindow.document).keydown(function (e) {
+						if (e.keyCode === 27) {
+							hideInfo()
+						}
+					})
+				}
+			}
+
+			function hideInfo() {
+				$("#infoTitle").text("")
+				$("#infoTitle").attr("title", "")
+				$("#infoFrame").attr("src", "")
+				$("#info").css("visibility", "hidden")
+			}
+		</script>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Sallybrowse</title>
+	</head>
+	<body>
+		<nav id="navigation">
+			<div class="nav-wrapper">
+				<ul>
+					<li><a href="{{ request.path }}?dl"><i class="material-icons"
+								title="Download">cloud_download</i></a></li>
+					<li>
+						<a class="copyCurrent" href="#!"><i class="material-icons" title="Copy path">file_copy</i></a>
+					</li>
+					<li><a class="infoCurrent" href="#!" style="margin-right: 20px"><i class="material-icons"
+								title="Info">info</i></a>
+						<!--<li style="margin-right: 20px"><a href="#!"><i class="material-icons" title="Search">search</i></a>-->
+					</li>
+				</ul>
+				<div id="breadcrumbs" class="col s12"></div>
+			</div>
+		</nav>
+		<div id="content">
+			<table class="highlight striped">
+				<thead>
+					<tr>
+						<th class="shrinkColumn">Actions</th>
+						<th>Name</th>
+						<th class="shrinkColumn">Size</th>
+						<th class="shrinkColumn">Type</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for entry in entries %}
+					<tr>
+						{% set path = (request.path + "/" + entry['name']).replace("//", "/") %}
+						<td class="shrinkColumn" style="width: 1px; white-space: nowrap">
+							<a href="{{ path }}?dl" style="margin: 0 10px">
+								<i class="material-icons" title="Download">cloud_download</i>
+							</a>
+							<i class="material-icons copyEntry" title="Copy path">file_copy</i>
+							<i class="material-icons infoEntry" title="Info" style="margin: 0 10px">info</i>
+						</td>
+						<td class="nameColumn"><a class="name" href="{{ path }}"
+								title="{{ path }}">{{ entry["name"] }}</a></td>
+						<td class="shrinkColumn" title="{{ entry['bytes'] }}">{{ entry["size"] }}</td>
+						<td class="shrinkColumn">{{ entry["type"] }}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		<div id="preview">
+			<div id="previewHeader">
+				<img id="previewClose" src="/static/images/close.png">
+				<span id="previewTitle"></span>
+			</div>
+			<iframe id="previewFrame"></iframe>
+		</div>
+		<div id="info">
+			<div id="infoHeader">
+				<img id="infoClose" src="/static/images/close.png">
+				<span id="infoTitle"></span>
+			</div>
+			<iframe id="infoFrame"></iframe>
+		</div>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+	</body>
+</html>

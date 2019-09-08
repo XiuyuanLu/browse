@@ -1,0 +1,7 @@
+flask
+chardet
+pygments
+textblob
+humanize
+python-magic
+git+https://gitlab.com/garfunkel/python-zipstream.git
