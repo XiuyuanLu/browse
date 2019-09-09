@@ -18,10 +18,10 @@ ARG_DOWNLOAD_ALAW_TO_WAV = "alaw2wavdl"
 ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
 EXTENSION_DIR = "extensions"
 COMMON_ROOT = None # Do not change
-SERVE_DIRECTORIES = tuple(
+SERVE_DIRECTORIES = tuple([
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
-)
+])
 
 app = Flask(__name__, static_url_path = "/static")
 extensions = []

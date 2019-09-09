@@ -25,7 +25,7 @@ class Extension(BaseExtension):
 
 		else:
 			try:
-				pipe = Popen(("unoconv", "-f", "pdf", request.path), stdout = PIPE)
+				pipe = Popen(("unoconv", "--stdout", "-f", "pdf", request.path), stdout = PIPE)
 				data, _ = pipe.communicate()
 
 				if pipe.returncode != 0:
