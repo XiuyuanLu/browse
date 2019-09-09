@@ -186,12 +186,9 @@
 				})
 
 				$(".copyEntry").click(function (e) {
-					var text = $(e.target).parent().parent().find(".nameColumn").text()
+					var name = $(e.target).parent().parent().find(".name").text()
 
-					text = "{{ request.path }}/" + text
-					text = text.replace(/\/\//g, "/")
-
-					copy(text)
+					copy(("{{ request.path }}/" + name).replace(/\/\//g, "/"))
 				})
 
 				$(".infoEntry").click(function (e) {
