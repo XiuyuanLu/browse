@@ -20,7 +20,7 @@ class Extension(BaseExtension):
 		response = Response()
 		format = True
 
-		if os.path.getsize(request.path) > 1000000:
+		if os.path.getsize(request.path) > 50000000: # 50MB
 			text = self.ERROR_NO_PREVIEW
 			format = False
 
