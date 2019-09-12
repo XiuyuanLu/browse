@@ -23,7 +23,7 @@ SERVE_DIRECTORIES = tuple([
 	# If left empty, all directories (/) will be served.
 ])
 
-app = Flask(__name__, static_url_path = "/static")
+app = Flask(__name__, static_url_path = "/static", template_folder = os.path.join(os.path.dirname(__file__), "templates"))
 extensions = []
 
 def browseDir():
