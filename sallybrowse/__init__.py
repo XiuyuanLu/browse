@@ -9,7 +9,7 @@ from zipstream import ZipFile, ZIP_DEFLATED
 from humanize import naturalsize
 from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect
 from magic import Magic
-from extensions import BaseExtension
+from sallybrowse.extensions import BaseExtension
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"

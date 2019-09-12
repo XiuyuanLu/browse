@@ -2,7 +2,7 @@
 
 import sys, os, re
 from flask import request, Response
-from extensions import BaseExtension
+from sallybrowse.extensions import BaseExtension
 
 class Extension(BaseExtension):
 	PATTERN = re.compile(r".*\.(mp3|ogg|wav|wma|aac|m4a|opus|flac|alaw|a8|ulaw|mulaw|u8)$", re.IGNORECASE)

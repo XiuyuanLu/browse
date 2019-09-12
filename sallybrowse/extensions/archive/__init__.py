@@ -2,7 +2,7 @@
 
 import sys, os, re, html
 from flask import request, Response
-from extensions import BaseExtension
+from sallybrowse.extensions import BaseExtension
 from subprocess import Popen, PIPE
 
 class Extension(BaseExtension):

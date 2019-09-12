@@ -7,7 +7,7 @@ from pygments.lexers import guess_lexer_for_filename
 from pygments.formatters import HtmlFormatter
 import chardet
 from textblob import TextBlob
-from extensions import BaseExtension
+from sallybrowse.extensions import BaseExtension
 
 class Extension(BaseExtension):
 	PATTERN = re.compile(r".*")

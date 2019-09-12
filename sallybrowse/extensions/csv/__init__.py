@@ -3,8 +3,8 @@
 import sys, os, re, html, csv
 import chardet
 from flask import request, Response
-from extensions import BaseExtension
-from extensions.other import Extension as OtherExtension
+from sallybrowse.extensions import BaseExtension
+from sallybrowse.extensions.other import Extension as OtherExtension
 from subprocess import Popen, PIPE
 
 class Extension(BaseExtension):

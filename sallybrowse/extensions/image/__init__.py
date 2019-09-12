@@ -2,7 +2,7 @@
 
 import sys, os, re
 from flask import request, Response
-from extensions import BaseExtension
+from sallybrowse.extensions import BaseExtension
 
 class Extension(BaseExtension):
 	PATTERN = re.compile(r".*\.(jpg|jpeg|png|gif|webp)$", re.IGNORECASE)
