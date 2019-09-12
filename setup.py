@@ -26,9 +26,9 @@ setuptools.setup(
 		"textblob",
 		"humanize",
 		"python-magic",
-		"python-zipstream"
+		"zipstream"
 	],
 	dependency_links=[
-		"git+https://gitlab.com/garfunkel/python-zipstream.git#egg=python-zipstream"
+		"git+https://gitlab.com/garfunkel/python-zipstream.git#egg=zipstream"
 	]
 )
