@@ -25,9 +25,10 @@ setuptools.setup(
 		"pygments",
 		"textblob",
 		"humanize",
-		"python-magic"
+		"python-magic",
+		"python-zipstream"
 	],
 	dependency_links=[
-		"https://gitlab.com/garfunkel/python-zipstream/-/archive/master/python-zipstream-master.tar.gz"
+		"https://gitlab.com/garfunkel/python-zipstream/-/archive/master/python-zipstream-master.tar.gz#egg=python-zipstream"
 	]
 )
