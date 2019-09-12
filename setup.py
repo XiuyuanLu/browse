@@ -25,7 +25,9 @@ setuptools.setup(
 		"pygments",
 		"textblob",
 		"humanize",
-		"python-magic",
+		"python-magic"
+	],
+	dependency_links=[
 		"git+https://gitlab.com/garfunkel/python-zipstream.git"
 	]
 )
