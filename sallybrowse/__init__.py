@@ -16,7 +16,7 @@ ARG_INFO = "info"
 ARG_EXTRA_DIR_INFO = "extradirinfo"
 ARG_DOWNLOAD_ALAW_TO_WAV = "alaw2wavdl"
 ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
-EXTENSION_DIR = "extensions"
+EXTENSION_DIR = os.path.join(os.path.dirname(__file__), "extensions")
 COMMON_ROOT = None # Do not change
 SERVE_DIRECTORIES = tuple([
 	# Put the directories you wish to serve here.
@@ -353,10 +353,10 @@ def loadExtensions():
 
 	for extension in os.listdir(EXTENSION_DIR):
 		if not extension.startswith("__"):
-			extension = os.path.join(EXTENSION_DIR, extension)
+			extensionPath = os.path.join(EXTENSION_DIR, extension)
 
-			if os.path.isdir(extension):
-				extension = extension.replace("/", ".").strip(".")
+			if os.path.isdir(extensionPath):
+				extension = "sallybrowse.extensions.%s" % extension
 
 				extensions.append(importlib.import_module(extension))
 
