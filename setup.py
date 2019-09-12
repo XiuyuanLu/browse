@@ -29,6 +29,6 @@ setuptools.setup(
 		"python-zipstream"
 	],
 	dependency_links=[
-		"https://gitlab.com/garfunkel/python-zipstream/-/archive/master/python-zipstream-master.tar.gz#egg=python-zipstream"
+		"git+https://gitlab.com/garfunkel/python-zipstream.git#egg=python-zipstream"
 	]
 )
