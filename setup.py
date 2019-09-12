@@ -28,6 +28,6 @@ setuptools.setup(
 		"python-magic"
 	],
 	dependency_links=[
-		"git+https://gitlab.com/garfunkel/python-zipstream.git"
+		"https://gitlab.com/garfunkel/python-zipstream/-/archive/master/python-zipstream-master.tar.gz"
 	]
 )
