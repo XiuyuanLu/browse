@@ -18,7 +18,12 @@ ARG_DOWNLOAD_ALAW_TO_WAV = "alaw2wavdl"
 ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
 EXTENSION_DIR = os.path.join(os.path.dirname(__file__), "extensions")
 COMMON_ROOT = None # Do not change
-SERVE_DIRECTORIES = tuple([
+
+if "SERVE_DIRECTORIES" in os.environ:
+	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
+
+else:
+	SERVE_DIRECTORIES = tuple([
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
