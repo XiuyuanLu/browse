@@ -27,9 +27,6 @@ setuptools.setup(
 		"textblob",
 		"humanize",
 		"python-magic",
-		"zipstream"
-	],
-	dependency_links=[
-		"git+https://gitlab.com/garfunkel/python-zipstream.git#egg=zipstream"
+                "zipstream @ https://github.com/garfunkel/python-zipstream/tarball/master"
 	]
 )
