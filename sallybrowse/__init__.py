@@ -97,7 +97,7 @@ def downloadDir():
 					continue
 
 				try:
-					stream.write_iter(filePath.lstrip("/"), generateFileChunks(filePath))
+					stream.write_iter(os.path.relpath(filePath, os.path.dirname(path)).lstrip("/"), generateFileChunks(filePath))
 
 				except:
 					continue
