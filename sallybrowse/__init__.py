@@ -93,7 +93,7 @@ def listDir():
 
 		paths.append(path)
 
-	return "<br/>".join(paths)
+	return "<br/>".join(sorted(paths))
 
 def downloadDir():
 	def generateFileChunks(path):
