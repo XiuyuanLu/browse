@@ -165,8 +165,14 @@
 					if (type.indexOf("directory") >= 0) {
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
-						showPreview($(e.target))
+						showPreview($(e.target).text())
 					}
+
+					e.preventDefault()
+				})
+
+				$(".pathList").click(function (e) {
+					showPreview("")
 
 					e.preventDefault()
 				})
@@ -224,10 +230,10 @@
 			}
 
 			function showPreview(target) {
-				var url = "{{ request.path }}".replace(/\/$/g, "") + "/" + target.text()
+				var url = "{{ request.path }}".replace(/\/$/g, "") + "/" + target + "?list"
 
-				$("#previewTitle").text(target.text())
-				$("#previewTitle").attr("title", target.text())
+				$("#previewTitle").text(target || "{{ request.path }}")
+				$("#previewTitle").attr("title", target || "{{ request.path }}")
 				$("#previewFrame").attr("src", url)
 				$("#preview").css("visibility", "visible")
 
@@ -282,6 +288,9 @@
 								title="Download">cloud_download</i></a></li>
 					<li>
 						<a class="copyCurrent" href="#!"><i class="material-icons" title="Copy path">file_copy</i></a>
+					</li>
+					<li>
+						<a class="pathList" href="#!"><i class="material-icons" title="Path list">list</i></a>
 					</li>
 					<li><a class="infoCurrent" href="#!" style="margin-right: 20px"><i class="material-icons"
 								title="Info">info</i></a>

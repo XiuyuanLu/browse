@@ -13,6 +13,7 @@ from sallybrowse.extensions import BaseExtension
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
+ARG_LIST = "list"
 ARG_EXTRA_DIR_INFO = "extradirinfo"
 ARG_DOWNLOAD_ALAW_TO_WAV = "alaw2wavdl"
 ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
@@ -74,6 +75,25 @@ def previewFile():
 			return extension.Extension().preview()
 
 	abort(404)
+
+def listDir():
+	paths = []
+
+	try:
+		files = os.listdir(request.path)
+
+	except:
+		files = []
+
+	for file in files:
+		path = os.path.join(request.path, file)
+
+		if not path.startswith(SERVE_DIRECTORIES):
+			continue
+
+		paths.append(path)
+
+	return "<br/>".join(paths)
 
 def downloadDir():
 	def generateFileChunks(path):
@@ -284,6 +304,9 @@ def browse(*args, **kwargs):
 
 			elif ARG_EXTRA_DIR_INFO in request.args:
 				return getExtraDirInfo()
+
+			elif ARG_LIST in request.args:
+				return listDir()
 
 			return browseDir()
 
