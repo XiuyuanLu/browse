@@ -162,7 +162,7 @@
 				$(".name").click(function (e) {
 					var type = $(e.target).parent().siblings().last().text()
 
-					if (type.indexOf("directory") >= 0) {
+					if (type.indexOf("directory") >= 0 || type.indexOf("S3 Bucket") >= 0) {
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
 						showPreview($(e.target).text())
@@ -319,6 +319,8 @@
 						{% elif "link" in entry["type"] %}
 						{% set typeIcon = "link" %}
 						{% elif "directory" in entry["type"] %}
+						{% set typeIcon = "folder" %}
+						{% elif "S3 Bucket" in entry["type"] %}
 						{% set typeIcon = "folder" %}
 						{% elif "file" in entry["type"] %}
 						{% set typeIcon = "insert_drive_file" %}
