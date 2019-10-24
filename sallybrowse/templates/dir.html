@@ -161,10 +161,11 @@
 
 				$(".name").click(function (e) {
 					var type = $(e.target).parent().siblings().last().text()
-
+					console.log(type)
 					if (type.indexOf("directory") >= 0 || type.indexOf("S3 Bucket") >= 0) {
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
+						console.log("It s a file :)")
 						showPreview($(e.target).text())
 					}
 

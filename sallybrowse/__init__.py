@@ -379,14 +379,45 @@ def infoFile():
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
 	print (args, kwargs)
-	print ("Processing path {}".format(request.path))
+	print ("Processing path {} with args {}".format(request.path, request.args))
 	if request.path == "/s3buckets":
 		print ("Top levle of all buckets")
 		return browseDir()
 
 	if "/s3buckets/" in request.path:
 		print ("Buckets and things in it")
-		return browseDir()
+
+		#If it's a directory
+		bucket_path = "/".join(request.path.split("/")[:3])
+		if request.path.endswith("/") or request.path == bucket_path:
+			# if ARG_DOWNLOAD in request.args:
+			# 	return downloadDir()
+
+			# elif ARG_INFO in request.args:
+			# 	return infoDir()
+
+			# elif ARG_EXTRA_DIR_INFO in request.args:
+			# 	return getExtraDirInfo()
+
+			# elif ARG_LIST in request.args:
+			# 	return listDir()
+			return browseDir()
+		if not request.path.startswith("/s3buckets"):
+			abort(403)
+
+		# if ARG_DOWNLOAD in request.args:
+		# 	return downloadFile()
+
+		# elif ARG_INFO in request.args:
+		# 	return infoFile()
+
+		# elif ARG_DOWNLOAD_ALAW_TO_WAV in request.args:
+		# 	return downloadAlaw2Wav()
+
+		# elif ARG_DOWNLOAD_ULAW_TO_WAV in request.args:
+		# 	return downloadUlaw2Wav()
+			
+		return previewFile()
 
 	if not os.path.isabs(request.path):
 		abort(403)
