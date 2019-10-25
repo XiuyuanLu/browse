@@ -13,6 +13,7 @@ from humanize import naturalsize
 from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
+from s3path import S3Path
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
@@ -43,72 +44,43 @@ s3 = session.resource('s3')
 
 S3Obj = namedtuple('S3Obj', ['key', 'mtime', 'size', 'ETag'])
 
-def folders(client, bucket, prefix=''):
-	return_list = []
-	paginator = client.get_paginator('list_objects')
-	q = []
-	for result in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter='/'):
-		if 'CommonPrefixes' in result:
-			q = [S3Obj(f['Prefix'], None, None, None) for f in result['CommonPrefixes']]
-		if 'Contents' in result:
-			q += ([S3Obj(f['Key'], f['LastModified'], f['Size'], f['ETag']) for f in result['Contents']])
-	return q
+def browseS3Dir(path):
+	if path == "/s3buckets":
+		p = S3Path('/')
+		bucket_list = [path for path in p.iterdir()]
+	else:
+		p = S3Path(path.replace("/s3buckets", ""))
+		bucket_list = [path for path in p.iterdir()]
+	
+	return bucket_list
 
-def s3BucketBrowse(bucket, prfx):
-	entries = []
-	try:
-		list_dir = folders(dev_s3_client, bucket, prefix=prfx)
-		for item in list_dir:
-			print (prfx, item[0].replace(prfx, ""))
-			if not item[-1]: #Means it's a folder i believe
-				entry = {
-					"dir": item[0].replace(prfx, ""),
-					"name": item[0].replace(prfx, ""),
-					"size": "N/A",
-					"type": "directory"
-				}
-			else:
-				entry = {
-					"dir": item[0].split("/")[:-1],
-					"name": item[0].split("/")[-1],
-					"size": naturalsize(item[2]),
-					"type": "file"
-				}
-			entries.append(entry)
-	except Exception as e:
-		print(e)
-	return entries
-
-def s3TopLevelBrowse():
-	entries = []
-	for bucket in dev_s3_client.list_buckets()["Buckets"]:
-		entry = {
-			"dir": bucket["Name"],
-			"name": bucket["Name"],
-			"size": "N/A",
-			"type": "S3 Bucket"
-		}
-		entries.append(entry)
-	return entries
 
 def browseDir():
 	print ("BROWSEDIR")
 	entries = []
-	if request.path == "/s3buckets":
-		try:
-			entries = s3TopLevelBrowse()
-		except Exception as e:
-			print (e)
-	elif request.path.startswith("/s3buckets/"):
-		try:
-			bucketname = request.path.split("/")[2]
-			prefix_target = ("/".join(request.path.split("/")[3:])).strip()
-			if prefix_target == "/":
-				prefix_target = ""
-			print (request.path, bucketname, prefix_target)
-			entries = s3BucketBrowse(bucketname, prefix_target)
-		except Exception as e:
-			print (e)
+	if request.path.startswith("/s3buckets"):
+		files = browseS3Dir(request.path)
+		for s3object in files:
+			try:
+				entry = {
+					"dir": str(s3object),
+					"name": str(s3object).split("/")[-1],
+					"type": "directory" if s3object.is_dir() else "file"
+				}
+
+				if entry["type"] == "file":
+					entry["bytes"] = s3object.stat().size
+					entry["size"] = naturalsize(s3object.stat().size)
+
+				else:
+					entry["bytes"] = "N/A"
+					entry["size"] = "N/A"
+
+				entries.append(entry)
+
+			except Exception as e:
+				print (e)
+				continue
 	else:
 		try:
 			files = os.listdir(request.path)
@@ -158,6 +130,10 @@ def previewFile():
 			return extension.Extension().preview()
 
 	abort(404)
+
+def previewS3File():
+	print ("PREVIEW S3")
+
 
 def listDir():
 
@@ -380,16 +356,14 @@ def infoFile():
 def browse(*args, **kwargs):
 	print (args, kwargs)
 	print ("Processing path {} with args {}".format(request.path, request.args))
-	if request.path == "/s3buckets":
-		print ("Top levle of all buckets")
-		return browseDir()
 
-	if "/s3buckets/" in request.path:
+	if "/s3buckets" in request.path:
 		print ("Buckets and things in it")
 
 		#If it's a directory
-		bucket_path = "/".join(request.path.split("/")[:3])
-		if request.path.endswith("/") or request.path == bucket_path:
+		bucket_path = "/{}".format("/".join(request.path.split("/")[2:]))
+		print (bucket_path)
+		if S3Path(bucket_path).is_dir():
 			# if ARG_DOWNLOAD in request.args:
 			# 	return downloadDir()
 
@@ -405,6 +379,9 @@ def browse(*args, **kwargs):
 		if not request.path.startswith("/s3buckets"):
 			abort(403)
 
+		# File stuff now
+
+
 		# if ARG_DOWNLOAD in request.args:
 		# 	return downloadFile()
 
@@ -417,7 +394,7 @@ def browse(*args, **kwargs):
 		# elif ARG_DOWNLOAD_ULAW_TO_WAV in request.args:
 		# 	return downloadUlaw2Wav()
 			
-		return previewFile()
+		return previewS3File()
 
 	if not os.path.isabs(request.path):
 		abort(403)
