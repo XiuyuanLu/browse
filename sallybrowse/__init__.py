@@ -15,8 +15,6 @@ from flask import Flask, send_file, escape, request, abort, Response, render_tem
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
-from pathlib import PurePath
-
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
@@ -39,13 +37,8 @@ else:
 app = Flask(__name__, static_url_path = "/static", template_folder = os.path.join(os.path.dirname(__file__), "templates"))
 extensions = []
 
-session = boto3.Session(profile_name='AWS.AD.CORP.PeDeveloper_profile')
-
-dev_s3_client = session.client('s3')
-
+session = boto3.Session()
 s3 = session.resource('s3')
-
-S3Obj = namedtuple('S3Obj', ['key', 'mtime', 'size', 'ETag'])
 
 def browseS3Dir(path):
 	if path == "/s3buckets":
@@ -59,7 +52,6 @@ def browseS3Dir(path):
 
 
 def browseDir():
-	print ("BROWSEDIR")
 	entries = []
 	if request.path.startswith("/s3buckets"):
 		files = browseS3Dir(request.path)
@@ -126,14 +118,12 @@ def browseDir():
 	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
 
 def previewFile():
-	print ("PREVIEW")
 	for extension in extensions:
 		if extension.Extension.PATTERN.match(request.path):
 			return extension.Extension().preview()
 	abort(404)
 
 def listDir():
-	print ("LISTDIR")
 	paths = []
 
 	try:
@@ -153,7 +143,6 @@ def listDir():
 	return "<br/>".join(sorted(paths))
 
 def downloadDir():
-	print ("DLDIR")
 	def generateFileChunks(path):
 		with open(path, "rb") as handle:
 			while True:
@@ -204,17 +193,6 @@ def get_path():
 
 def downloadFile():
 	rpath = get_path()
-	# def generateFileChunks(path):
-	# 	with path.open(mode="rb") as handle:
-	# 		while True:
-	# 			chunk = handle.read(1024)
-
-	# 			if len(chunk) == 0:
-	# 				return
-
-	# 			yield chunk
-
-	# return Response(generateFileChunks(rpath), mimetype=mimetypes.guess_type(str(rpath))[0])
 	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
@@ -243,8 +221,6 @@ def downloadUlaw2Wav():
 
 
 def getType(path):
-
-	print ("TYPE")
 	file = os.path.basename(path)
 
 	if file.startswith("."):
@@ -280,8 +256,6 @@ def getType(path):
 	return fileType
 
 def getExtraDirInfo():
-
-	print ("EXTRADIR")
 	data = {}
 	size = 0
 	numFiles = 0
@@ -310,13 +284,9 @@ def getExtraDirInfo():
 	return jsonify(data)
 
 def getInfo():
-
-	print ("INFODIR")
 	if request.path.startswith("/s3buckets/"):
 		bucket_path = get_path()
-		# print (bucket_path.is_dir())
 		bucket_name, item_path = str(bucket_path.bucket).lstrip("/"), str(bucket_path.key)
-		# print (bucket_name, item_path)
 		if bucket_path.is_dir():
 			data = [
 				("Path", request.path),
@@ -397,12 +367,8 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-	print (args, kwargs)
-	print ("Processing path {} with args {}".format(request.path, request.args))
 
 	if "/s3buckets" in request.path:
-		print ("Buckets and things in it")
-
 		#If it's a directory
 		bucket_path = "/{}".format("/".join(request.path.split("/")[2:]))
 		print (bucket_path)
@@ -423,8 +389,6 @@ def browse(*args, **kwargs):
 			abort(403)
 
 		# File stuff now
-
-
 		if ARG_DOWNLOAD in request.args:
 			return downloadFile()
 
@@ -486,8 +450,6 @@ def browse(*args, **kwargs):
 
 @app.before_first_request
 def setupCommonRoot():
-
-	print ("SETUP")
 	global COMMON_ROOT
 	global SERVE_DIRECTORIES
 
@@ -534,8 +496,6 @@ def setupCommonRoot():
 
 @app.before_first_request
 def loadExtensions():
-
-	print ("EXTENSION")
 	global extensions
 
 	for extension in os.listdir(EXTENSION_DIR):

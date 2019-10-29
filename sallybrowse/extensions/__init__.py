@@ -48,7 +48,7 @@ class BaseExtension(object):
 				</head>
 				<body>
 		"""
-		print (data)
+		
 		for key, value in data:
 			text += """
 					<b>%s:</b> <span>%s</span><br/>
