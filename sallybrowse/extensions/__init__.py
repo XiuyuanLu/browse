@@ -25,7 +25,6 @@ class BaseExtension(object):
 						%s
 					</style>
 		"""
-
 		if os.path.isdir(request.path):
 			text += """
 					<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -44,12 +43,12 @@ class BaseExtension(object):
 						})
 					</script>
 			""" % request.path
-
+		
 		text += """
 				</head>
 				<body>
 		"""
-
+		print (data)
 		for key, value in data:
 			text += """
 					<b>%s:</b> <span>%s</span><br/>

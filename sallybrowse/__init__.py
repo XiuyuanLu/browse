@@ -2,6 +2,7 @@
 
 import sys, os, re, importlib, time
 import boto3, botocore
+import mimetypes
 
 from io import BytesIO
 from pwd import getpwuid
@@ -14,6 +15,8 @@ from flask import Flask, send_file, escape, request, abort, Response, render_tem
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
+from pathlib import PurePath
+
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
@@ -123,20 +126,13 @@ def browseDir():
 	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
 
 def previewFile():
-
 	print ("PREVIEW")
 	for extension in extensions:
 		if extension.Extension.PATTERN.match(request.path):
 			return extension.Extension().preview()
-
 	abort(404)
 
-def previewS3File():
-	print ("PREVIEW S3")
-
-
 def listDir():
-
 	print ("LISTDIR")
 	paths = []
 
@@ -157,7 +153,6 @@ def listDir():
 	return "<br/>".join(sorted(paths))
 
 def downloadDir():
-
 	print ("DLDIR")
 	def generateFileChunks(path):
 		with open(path, "rb") as handle:
@@ -198,8 +193,29 @@ def downloadDir():
 
 	return response
 
+def get_path():
+	path = request.path
+	if path.startswith("/s3buckets/"):
+		path = path.replace("/s3buckets", "")
+		return S3Path(path)
+	else:
+		return Path(path)
+
+
 def downloadFile():
-	return send_file(request.path, conditional = True, as_attachment = True)
+	rpath = get_path()
+	# def generateFileChunks(path):
+	# 	with path.open(mode="rb") as handle:
+	# 		while True:
+	# 			chunk = handle.read(1024)
+
+	# 			if len(chunk) == 0:
+	# 				return
+
+	# 			yield chunk
+
+	# return Response(generateFileChunks(rpath), mimetype=mimetypes.guess_type(str(rpath))[0])
+	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
 	pipe = Popen(("sox", "-t", ".raw", "-e", "a-law", "-c", "1", "-r", "8000", request.path, "-t", "wavpcm", "-"), stdout = PIPE)
@@ -224,6 +240,7 @@ def downloadUlaw2Wav():
 	filename = os.path.basename(request.path) + ".ulaw"
 
 	return send_file(buffer, conditional = True, as_attachment = True, attachment_filename = filename)
+
 
 def getType(path):
 
@@ -295,46 +312,72 @@ def getExtraDirInfo():
 def getInfo():
 
 	print ("INFODIR")
-	if not os.path.exists(request.path):
-		abort(404)
-
-	data = [
-		("Path", request.path),
-		("Type", getType(request.path)),
-		("Last modified", time.ctime(os.path.getmtime(request.path))),
-		("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
-	]
-
-	owner = os.stat(request.path).st_uid
-	group = os.stat(request.path).st_gid
-
-	try:
-		owner = getpwuid(owner).pw_name
-
-	except:
-		pass
-
-	try:
-		group = getgrgid(group).gr_name
-
-	except:
-		pass
-
-	data.append(("Owner", owner))
-	data.append(("Group", group))
-
-	if os.path.isdir(request.path):
-		data.append(("Bytes", BaseExtension.AJAX_DIR_BYTES))
-		data.append(("Size", BaseExtension.AJAX_DIR_SIZE))
-		data.append(("Number of files", BaseExtension.AJAX_DIR_NUM_FILES))
-		data.append(("Number of links", BaseExtension.AJAX_DIR_NUM_LINKS))
-		data.append(("Number of directories", BaseExtension.AJAX_DIR_NUM_DIRS))
-
+	if request.path.startswith("/s3buckets/"):
+		bucket_path = get_path()
+		# print (bucket_path.is_dir())
+		bucket_name, item_path = str(bucket_path.bucket).lstrip("/"), str(bucket_path.key)
+		# print (bucket_name, item_path)
+		if bucket_path.is_dir():
+			data = [
+				("Path", request.path),
+				("Type", "directory" if bucket_path.is_dir() else "file"),
+			]
+		else:
+			stats = s3.ObjectSummary(bucket_name, item_path)
+			data = [
+				("Path", request.path),
+				("Type", "directory" if bucket_path.is_dir() else "file"),
+				("Last modified", stats.last_modified),
+				("Bytes", stats.size),
+				("Size", naturalsize(stats.size)),
+				("e_tag", stats.e_tag),
+				("Owner", stats.owner)
+			]
 	else:
-		numBytes = os.path.getsize(request.path)
+		if not os.path.exists(request.path):
+			abort(404)
 
-		data.append(("Bytes", numBytes))
-		data.append(("Size", naturalsize(numBytes)))
+		data = [
+			("Path", request.path),
+			("Type", getType(request.path)),
+			("Last modified", time.ctime(os.path.getmtime(request.path))),
+			("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
+		]
+
+	
+	if not request.path.startswith("/s3buckets/"):
+		owner = os.stat(request.path).st_uid
+		group = os.stat(request.path).st_gid
+
+		try:
+			owner = getpwuid(owner).pw_name
+
+		except:
+			pass
+
+		try:
+			group = getgrgid(group).gr_name
+
+		except:
+			pass
+
+		data.append(("Owner", owner))
+		data.append(("Group", group))
+	if not request.path.startswith("/s3buckets/"):
+		if os.path.isdir(request.path):
+			data.append(("Bytes", BaseExtension.AJAX_DIR_BYTES))
+			data.append(("Size", BaseExtension.AJAX_DIR_SIZE))
+			data.append(("Number of files", BaseExtension.AJAX_DIR_NUM_FILES))
+			data.append(("Number of links", BaseExtension.AJAX_DIR_NUM_LINKS))
+			data.append(("Number of directories", BaseExtension.AJAX_DIR_NUM_DIRS))
+
+		else:
+			
+			numBytes = os.path.getsize(request.path)
+
+			data.append(("Bytes", numBytes))
+			data.append(("Size", naturalsize(numBytes)))
+
 
 	if not os.path.isdir(request.path) and (os.path.isfile(request.path) or os.path.islink(request.path)) and os.path.exists(request.path):
 		data.append(("Likely MIME type", Magic(mime = True).from_file(request.path)))
@@ -367,8 +410,8 @@ def browse(*args, **kwargs):
 			# if ARG_DOWNLOAD in request.args:
 			# 	return downloadDir()
 
-			# elif ARG_INFO in request.args:
-			# 	return infoDir()
+			if ARG_INFO in request.args:
+				return infoDir()
 
 			# elif ARG_EXTRA_DIR_INFO in request.args:
 			# 	return getExtraDirInfo()
@@ -382,11 +425,12 @@ def browse(*args, **kwargs):
 		# File stuff now
 
 
-		# if ARG_DOWNLOAD in request.args:
-		# 	return downloadFile()
+		if ARG_DOWNLOAD in request.args:
+			return downloadFile()
 
-		# elif ARG_INFO in request.args:
-		# 	return infoFile()
+		elif ARG_INFO in request.args:
+			print ("Asking for INFO")
+			return infoFile()
 
 		# elif ARG_DOWNLOAD_ALAW_TO_WAV in request.args:
 		# 	return downloadAlaw2Wav()
@@ -394,7 +438,7 @@ def browse(*args, **kwargs):
 		# elif ARG_DOWNLOAD_ULAW_TO_WAV in request.args:
 		# 	return downloadUlaw2Wav()
 			
-		return previewS3File()
+		return previewFile()
 
 	if not os.path.isabs(request.path):
 		abort(403)

@@ -20,12 +20,16 @@ class Extension(BaseExtension):
 		response = Response()
 		format = True
 
-		if os.path.getsize(request.path) > 50000000: # 50MB
+		if "/s3buckets/" in request.path:
 			text = self.ERROR_NO_PREVIEW
 			format = False
-
 		else:
-			text = open(request.path, "rb").read()
+			if os.path.getsize(request.path) > 50000000: # 50MB
+				text = self.ERROR_NO_PREVIEW
+				format = False
+
+			else:
+				text = open(request.path, "rb").read()
 
 		try:
 			text = text.decode("UTF-8")
@@ -77,9 +81,10 @@ class Extension(BaseExtension):
 		return response
 
 	def info(self, data):
-		text = open(request.path, "rb").read()
+		text = ""
 
 		try:
+			text = open(request.path, "rb").read()
 			codec = chardet.detect(text)["encoding"]
 			text = text.decode(codec)
 
