@@ -27,9 +27,9 @@ COMMON_ROOT = None # Do not change
 
 if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
-
 else:
 	SERVE_DIRECTORIES = tuple([
+		# "/Users/nleung/",
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
@@ -53,6 +53,7 @@ def browseS3Dir(path):
 
 def browseDir():
 	entries = []
+	print (request.path)
 	if request.path.startswith("/s3buckets"):
 		files = browseS3Dir(request.path)
 		for s3object in files:
@@ -81,6 +82,10 @@ def browseDir():
 			files = os.listdir(request.path)
 		except:
 			files = []
+
+		if os.path.islink(request.path):
+			if not os.readlink(request.path).startswith(SERVE_DIRECTORIES):
+				abort(403)
 
 
 		for file in files:
@@ -142,45 +147,84 @@ def listDir():
 
 	return "<br/>".join(sorted(paths))
 
+
+
 def downloadDir():
+	# def generateFileChunks(path):
+	# 	with open(path, "rb") as handle:
+	# 		while True:
+	# 			chunk = handle.read(1024)
+
+	# 			if len(chunk) == 0:
+	# 				return
+
+	# 			yield chunk
+
+	# def generateChunks(path):
+	# 	stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
+
+	# 	for root, _, files in os.walk(path):
+	# 		for file in files:
+	# 			filePath = os.path.join(root, file)
+
+	# 			if not os.path.exists(filePath):
+	# 				continue
+
+	# 			try:
+	# 				stream.write_iter(os.path.relpath(filePath, os.path.dirname(path)).lstrip("/"), generateFileChunks(filePath))
+
+	# 			except:
+	# 				continue
+
+	# 			for chunk in stream.next_file():
+	# 				yield chunk
+
+	# 	for chunk in stream:
+	# 		yield chunk
+
 	def generateFileChunks(path):
-		with open(path, "rb") as handle:
+		# print (path)
+		with path.open(mode="rb") as handle:
 			while True:
 				chunk = handle.read(1024)
-
 				if len(chunk) == 0:
 					return
-
 				yield chunk
 
 	def generateChunks(path):
+		# print (path)
+		print ("GENEREATE U FUCKS")
 		stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
 
-		for root, _, files in os.walk(path):
-			for file in files:
-				filePath = os.path.join(root, file)
+		for item in path.glob('*.*'):
+			print ((item.split('/')[-1]).lstrip("/"))
+			print (item)
+			try:
+				stream.write_iter((item.split('/')[-1]).lstrip("/"), generateFileChunks(item))
+			except:
+				continue
 
-				if not os.path.exists(filePath):
-					continue
-
-				try:
-					stream.write_iter(os.path.relpath(filePath, os.path.dirname(path)).lstrip("/"), generateFileChunks(filePath))
-
-				except:
-					continue
-
-				for chunk in stream.next_file():
-					yield chunk
+			for chunk in stream.next_file():
+				yield chunk
 
 		for chunk in stream:
 			yield chunk
+	
+	# filename = (os.path.basename(request.path) or "root") + ".zip"
 
-	filename = (os.path.basename(request.path) or "root") + ".zip"
+	# response = Response(generateChunks(request.path), mimetype = "application/zip")
+	# response.headers["Content-Disposition"] = "attachment; filename=%s" % filename
 
-	response = Response(generateChunks(request.path), mimetype = "application/zip")
+	# return response
+	path = get_path()
+	filename = (path.name.split('/')[-1] or "root") + ".zip"
+	print (filename)
+
+	response = Response(generateChunks(path), mimetype = "application/zip")
 	response.headers["Content-Disposition"] = "attachment; filename=%s" % filename
 
 	return response
+	
 
 def get_path():
 	path = request.path
@@ -373,10 +417,10 @@ def browse(*args, **kwargs):
 		bucket_path = "/{}".format("/".join(request.path.split("/")[2:]))
 		print (bucket_path)
 		if S3Path(bucket_path).is_dir():
-			# if ARG_DOWNLOAD in request.args:
-			# 	return downloadDir()
+			if ARG_DOWNLOAD in request.args:
+				return downloadDir()
 
-			if ARG_INFO in request.args:
+			elif ARG_INFO in request.args:
 				return infoDir()
 
 			# elif ARG_EXTRA_DIR_INFO in request.args:
