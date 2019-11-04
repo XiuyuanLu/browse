@@ -54,7 +54,7 @@ def browseS3Dir(path):
 
 def browseDir():
 	entries = []
-	print (request.path)
+	# print (request.path)
 	if request.path.startswith("/s3buckets"):
 		files = browseS3Dir(request.path)
 		for s3object in files:
@@ -374,7 +374,7 @@ def browse(*args, **kwargs):
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = "/{}".format("/".join(request.path.split("/")[2:]))
-		print (bucket_path)
+		# print (bucket_path)
 		if S3Path(bucket_path).is_dir():
 			if ARG_DOWNLOAD in request.args:
 				return downloadDir()
@@ -396,7 +396,7 @@ def browse(*args, **kwargs):
 			return downloadFile()
 
 		elif ARG_INFO in request.args:
-			print ("Asking for INFO")
+			# print ("Asking for INFO")
 			return infoFile()
 
 		# elif ARG_DOWNLOAD_ALAW_TO_WAV in request.args:
