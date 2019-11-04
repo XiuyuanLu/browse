@@ -192,15 +192,13 @@ def downloadDir():
 				yield chunk
 
 	def generateChunks(path):
-		# print (path)
-		print ("GENEREATE U FUCKS")
 		stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
 
 		for item in path.glob('*.*'):
-			print ((item.split('/')[-1]).lstrip("/"))
-			print (item)
+			if not item.exists():
+				continue
 			try:
-				stream.write_iter((item.split('/')[-1]).lstrip("/"), generateFileChunks(item))
+				stream.write_iter((item.name.split('/')[-1]).lstrip("/"), generateFileChunks(item))
 			except:
 				continue
 
@@ -209,7 +207,7 @@ def downloadDir():
 
 		for chunk in stream:
 			yield chunk
-	
+		
 	# filename = (os.path.basename(request.path) or "root") + ".zip"
 
 	# response = Response(generateChunks(request.path), mimetype = "application/zip")
@@ -217,6 +215,7 @@ def downloadDir():
 
 	# return response
 	path = get_path()
+	print (path)
 	filename = (path.name.split('/')[-1] or "root") + ".zip"
 	print (filename)
 
