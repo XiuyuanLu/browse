@@ -15,6 +15,7 @@ from flask import Flask, send_file, escape, request, abort, Response, render_tem
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
+from pathlib import Path
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
@@ -150,40 +151,7 @@ def listDir():
 
 
 def downloadDir():
-	# def generateFileChunks(path):
-	# 	with open(path, "rb") as handle:
-	# 		while True:
-	# 			chunk = handle.read(1024)
-
-	# 			if len(chunk) == 0:
-	# 				return
-
-	# 			yield chunk
-
-	# def generateChunks(path):
-	# 	stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
-
-	# 	for root, _, files in os.walk(path):
-	# 		for file in files:
-	# 			filePath = os.path.join(root, file)
-
-	# 			if not os.path.exists(filePath):
-	# 				continue
-
-	# 			try:
-	# 				stream.write_iter(os.path.relpath(filePath, os.path.dirname(path)).lstrip("/"), generateFileChunks(filePath))
-
-	# 			except:
-	# 				continue
-
-	# 			for chunk in stream.next_file():
-	# 				yield chunk
-
-	# 	for chunk in stream:
-	# 		yield chunk
-
 	def generateFileChunks(path):
-		# print (path)
 		with path.open(mode="rb") as handle:
 			while True:
 				chunk = handle.read(1024)
@@ -207,17 +175,9 @@ def downloadDir():
 
 		for chunk in stream:
 			yield chunk
-		
-	# filename = (os.path.basename(request.path) or "root") + ".zip"
 
-	# response = Response(generateChunks(request.path), mimetype = "application/zip")
-	# response.headers["Content-Disposition"] = "attachment; filename=%s" % filename
-
-	# return response
 	path = get_path()
-	print (path)
 	filename = (path.name.split('/')[-1] or "root") + ".zip"
-	print (filename)
 
 	response = Response(generateChunks(path), mimetype = "application/zip")
 	response.headers["Content-Disposition"] = "attachment; filename=%s" % filename
