@@ -52,7 +52,7 @@ def browseS3Dir(path):
 
 def browseDir():
 	entries = []
-	print (request.path)
+	
 	if request.path.startswith("/s3buckets"):
 		files = browseS3Dir(request.path)
 		for s3object in files:
