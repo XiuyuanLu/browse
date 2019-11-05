@@ -2,7 +2,6 @@
 
 import sys, os, re, importlib, time
 import boto3, botocore
-import mimetypes
 
 from io import BytesIO
 from pwd import getpwuid
@@ -113,7 +112,7 @@ def browseDir():
 
 			except:
 				continue
-		if "/s3buckets" in SERVE_DIRECTORIES:
+		if "/s3buckets" in SERVE_DIRECTORIES and request.path == "/":
 			s3entry = {
 				"dir": "/s3buckets",
 				"name": "s3buckets",
