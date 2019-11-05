@@ -135,7 +135,6 @@
 				var path = []
 
 				parts[0] = "/"
-
 				for (var part of parts) {
 					if (part === "") {
 						continue
@@ -146,8 +145,11 @@
 					}
 
 					var crumb = $("<a>")
-
-					crumb.attr("href", "/" + path.join("/"))
+					if (!path.join("/")){
+						crumb.attr("href", "/")
+					} else {
+						crumb.attr("href", "/" + path.join("/") + "/")
+					}
 					crumb.addClass("breadcrumb")
 
 					if (part === "/") {
@@ -161,10 +163,11 @@
 
 				$(".name").click(function (e) {
 					var type = $(e.target).parent().siblings().last().text()
-
+					
 					if (type.indexOf("directory") >= 0 || type.indexOf("S3 Bucket") >= 0) {
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
+						console.log("It s a file :)")
 						showPreview($(e.target).text())
 					}
 

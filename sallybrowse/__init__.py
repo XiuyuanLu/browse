@@ -2,6 +2,7 @@
 
 import sys, os, re, importlib, time
 import boto3, botocore
+import mimetypes
 
 from io import BytesIO
 from pwd import getpwuid
@@ -13,6 +14,8 @@ from humanize import naturalsize
 from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
+from s3path import S3Path
+from pathlib import Path
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
@@ -25,9 +28,9 @@ COMMON_ROOT = None # Do not change
 
 if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
-
 else:
 	SERVE_DIRECTORIES = tuple([
+		# "/Users/nleung/",
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
@@ -35,85 +38,55 @@ else:
 app = Flask(__name__, static_url_path = "/static", template_folder = os.path.join(os.path.dirname(__file__), "templates"))
 extensions = []
 
-session = boto3.Session(profile_name='AWS.AD.CORP.PeDeveloper_profile')
-
-dev_s3_client = session.client('s3')
-
+session = boto3.Session()
 s3 = session.resource('s3')
 
-S3Obj = namedtuple('S3Obj', ['key', 'mtime', 'size', 'ETag'])
+def browseS3Dir(path):
+	if path == "/s3buckets":
+		p = S3Path('/')
+		bucket_list = [path for path in p.iterdir()]
+	else:
+		p = S3Path(path.replace("/s3buckets", ""))
+		bucket_list = [path for path in p.iterdir()]
+	
+	return bucket_list
 
-def folders(client, bucket, prefix=''):
-	return_list = []
-	paginator = client.get_paginator('list_objects')
-	q = []
-	for result in paginator.paginate(Bucket=bucket, Prefix=prefix, Delimiter='/'):
-		if 'CommonPrefixes' in result:
-			q = [S3Obj(f['Prefix'], None, None, None) for f in result['CommonPrefixes']]
-		if 'Contents' in result:
-			q += ([S3Obj(f['Key'], f['LastModified'], f['Size'], f['ETag']) for f in result['Contents']])
-	return q
-
-def s3BucketBrowse(bucket, prfx):
-	entries = []
-	try:
-		list_dir = folders(dev_s3_client, bucket, prefix=prfx)
-		for item in list_dir:
-			print (prfx, item[0].replace(prfx, ""))
-			if not item[-1]: #Means it's a folder i believe
-				entry = {
-					"dir": item[0].replace(prfx, ""),
-					"name": item[0].replace(prfx, ""),
-					"size": "N/A",
-					"type": "directory"
-				}
-			else:
-				entry = {
-					"dir": item[0].split("/")[:-1],
-					"name": item[0].split("/")[-1],
-					"size": naturalsize(item[2]),
-					"type": "file"
-				}
-			entries.append(entry)
-	except Exception as e:
-		print(e)
-	return entries
-
-def s3TopLevelBrowse():
-	entries = []
-	for bucket in dev_s3_client.list_buckets()["Buckets"]:
-		entry = {
-			"dir": bucket["Name"],
-			"name": bucket["Name"],
-			"size": "N/A",
-			"type": "S3 Bucket"
-		}
-		entries.append(entry)
-	return entries
 
 def browseDir():
-	print ("BROWSEDIR")
 	entries = []
-	if request.path == "/s3buckets":
-		try:
-			entries = s3TopLevelBrowse()
-		except Exception as e:
-			print (e)
-	elif request.path.startswith("/s3buckets/"):
-		try:
-			bucketname = request.path.split("/")[2]
-			prefix_target = ("/".join(request.path.split("/")[3:])).strip()
-			if prefix_target == "/":
-				prefix_target = ""
-			print (request.path, bucketname, prefix_target)
-			entries = s3BucketBrowse(bucketname, prefix_target)
-		except Exception as e:
-			print (e)
+	# print (request.path)
+	if request.path.startswith("/s3buckets"):
+		files = browseS3Dir(request.path)
+		for s3object in files:
+			try:
+				entry = {
+					"dir": str(s3object),
+					"name": str(s3object).split("/")[-1],
+					"type": "directory" if s3object.is_dir() else "file"
+				}
+
+				if entry["type"] == "file":
+					entry["bytes"] = s3object.stat().size
+					entry["size"] = naturalsize(s3object.stat().size)
+
+				else:
+					entry["bytes"] = "N/A"
+					entry["size"] = "N/A"
+
+				entries.append(entry)
+
+			except Exception as e:
+				print (e)
+				continue
 	else:
 		try:
 			files = os.listdir(request.path)
 		except:
 			files = []
+
+		if os.path.islink(request.path):
+			if not os.readlink(request.path).startswith(SERVE_DIRECTORIES):
+				abort(403)
 
 
 		for file in files:
@@ -151,17 +124,12 @@ def browseDir():
 	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
 
 def previewFile():
-
-	print ("PREVIEW")
 	for extension in extensions:
 		if extension.Extension.PATTERN.match(request.path):
 			return extension.Extension().preview()
-
 	abort(404)
 
 def listDir():
-
-	print ("LISTDIR")
 	paths = []
 
 	try:
@@ -180,50 +148,55 @@ def listDir():
 
 	return "<br/>".join(sorted(paths))
 
-def downloadDir():
 
-	print ("DLDIR")
+
+def downloadDir():
 	def generateFileChunks(path):
-		with open(path, "rb") as handle:
+		with path.open(mode="rb") as handle:
 			while True:
 				chunk = handle.read(1024)
-
 				if len(chunk) == 0:
 					return
-
 				yield chunk
 
 	def generateChunks(path):
 		stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
 
-		for root, _, files in os.walk(path):
-			for file in files:
-				filePath = os.path.join(root, file)
+		for item in path.glob('*.*'):
+			if not item.exists():
+				continue
+			try:
+				stream.write_iter((item.name.split('/')[-1]).lstrip("/"), generateFileChunks(item))
+			except:
+				continue
 
-				if not os.path.exists(filePath):
-					continue
-
-				try:
-					stream.write_iter(os.path.relpath(filePath, os.path.dirname(path)).lstrip("/"), generateFileChunks(filePath))
-
-				except:
-					continue
-
-				for chunk in stream.next_file():
-					yield chunk
+			for chunk in stream.next_file():
+				yield chunk
 
 		for chunk in stream:
 			yield chunk
 
-	filename = (os.path.basename(request.path) or "root") + ".zip"
+	path = get_path()
+	filename = (path.name.split('/')[-1] or "root") + ".zip"
 
-	response = Response(generateChunks(request.path), mimetype = "application/zip")
+	response = Response(generateChunks(path), mimetype = "application/zip")
 	response.headers["Content-Disposition"] = "attachment; filename=%s" % filename
 
 	return response
+	
+
+def get_path():
+	path = request.path
+	if path.startswith("/s3buckets/"):
+		path = path.replace("/s3buckets", "")
+		return S3Path(path)
+	else:
+		return Path(path)
+
 
 def downloadFile():
-	return send_file(request.path, conditional = True, as_attachment = True)
+	rpath = get_path()
+	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
 	pipe = Popen(("sox", "-t", ".raw", "-e", "a-law", "-c", "1", "-r", "8000", request.path, "-t", "wavpcm", "-"), stdout = PIPE)
@@ -249,9 +222,8 @@ def downloadUlaw2Wav():
 
 	return send_file(buffer, conditional = True, as_attachment = True, attachment_filename = filename)
 
-def getType(path):
 
-	print ("TYPE")
+def getType(path):
 	file = os.path.basename(path)
 
 	if file.startswith("."):
@@ -287,8 +259,6 @@ def getType(path):
 	return fileType
 
 def getExtraDirInfo():
-
-	print ("EXTRADIR")
 	data = {}
 	size = 0
 	numFiles = 0
@@ -317,48 +287,70 @@ def getExtraDirInfo():
 	return jsonify(data)
 
 def getInfo():
-
-	print ("INFODIR")
-	if not os.path.exists(request.path):
-		abort(404)
-
-	data = [
-		("Path", request.path),
-		("Type", getType(request.path)),
-		("Last modified", time.ctime(os.path.getmtime(request.path))),
-		("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
-	]
-
-	owner = os.stat(request.path).st_uid
-	group = os.stat(request.path).st_gid
-
-	try:
-		owner = getpwuid(owner).pw_name
-
-	except:
-		pass
-
-	try:
-		group = getgrgid(group).gr_name
-
-	except:
-		pass
-
-	data.append(("Owner", owner))
-	data.append(("Group", group))
-
-	if os.path.isdir(request.path):
-		data.append(("Bytes", BaseExtension.AJAX_DIR_BYTES))
-		data.append(("Size", BaseExtension.AJAX_DIR_SIZE))
-		data.append(("Number of files", BaseExtension.AJAX_DIR_NUM_FILES))
-		data.append(("Number of links", BaseExtension.AJAX_DIR_NUM_LINKS))
-		data.append(("Number of directories", BaseExtension.AJAX_DIR_NUM_DIRS))
-
+	if request.path.startswith("/s3buckets/"):
+		bucket_path = get_path()
+		bucket_name, item_path = str(bucket_path.bucket).lstrip("/"), str(bucket_path.key)
+		if bucket_path.is_dir():
+			data = [
+				("Path", request.path),
+				("Type", "directory" if bucket_path.is_dir() else "file"),
+			]
+		else:
+			stats = s3.ObjectSummary(bucket_name, item_path)
+			data = [
+				("Path", request.path),
+				("Type", "directory" if bucket_path.is_dir() else "file"),
+				("Last modified", stats.last_modified),
+				("Bytes", stats.size),
+				("Size", naturalsize(stats.size)),
+				("e_tag", stats.e_tag),
+				("Owner", stats.owner)
+			]
 	else:
-		numBytes = os.path.getsize(request.path)
+		if not os.path.exists(request.path):
+			abort(404)
 
-		data.append(("Bytes", numBytes))
-		data.append(("Size", naturalsize(numBytes)))
+		data = [
+			("Path", request.path),
+			("Type", getType(request.path)),
+			("Last modified", time.ctime(os.path.getmtime(request.path))),
+			("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
+		]
+
+	
+	if not request.path.startswith("/s3buckets/"):
+		owner = os.stat(request.path).st_uid
+		group = os.stat(request.path).st_gid
+
+		try:
+			owner = getpwuid(owner).pw_name
+
+		except:
+			pass
+
+		try:
+			group = getgrgid(group).gr_name
+
+		except:
+			pass
+
+		data.append(("Owner", owner))
+		data.append(("Group", group))
+	if not request.path.startswith("/s3buckets/"):
+		if os.path.isdir(request.path):
+			data.append(("Bytes", BaseExtension.AJAX_DIR_BYTES))
+			data.append(("Size", BaseExtension.AJAX_DIR_SIZE))
+			data.append(("Number of files", BaseExtension.AJAX_DIR_NUM_FILES))
+			data.append(("Number of links", BaseExtension.AJAX_DIR_NUM_LINKS))
+			data.append(("Number of directories", BaseExtension.AJAX_DIR_NUM_DIRS))
+
+		else:
+			
+			numBytes = os.path.getsize(request.path)
+
+			data.append(("Bytes", numBytes))
+			data.append(("Size", naturalsize(numBytes)))
+
 
 	if not os.path.isdir(request.path) and (os.path.isfile(request.path) or os.path.islink(request.path)) and os.path.exists(request.path):
 		data.append(("Likely MIME type", Magic(mime = True).from_file(request.path)))
@@ -378,15 +370,42 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-	print (args, kwargs)
-	print ("Processing path {}".format(request.path))
-	if request.path == "/s3buckets":
-		print ("Top levle of all buckets")
-		return browseDir()
 
-	if "/s3buckets/" in request.path:
-		print ("Buckets and things in it")
-		return browseDir()
+	if "/s3buckets" in request.path:
+		#If it's a directory
+		bucket_path = "/{}".format("/".join(request.path.split("/")[2:]))
+		# print (bucket_path)
+		if S3Path(bucket_path).is_dir():
+			if ARG_DOWNLOAD in request.args:
+				return downloadDir()
+
+			elif ARG_INFO in request.args:
+				return infoDir()
+
+			# elif ARG_EXTRA_DIR_INFO in request.args:
+			# 	return getExtraDirInfo()
+
+			# elif ARG_LIST in request.args:
+			# 	return listDir()
+			return browseDir()
+		if not request.path.startswith("/s3buckets"):
+			abort(403)
+
+		# File stuff now
+		if ARG_DOWNLOAD in request.args:
+			return downloadFile()
+
+		elif ARG_INFO in request.args:
+			# print ("Asking for INFO")
+			return infoFile()
+
+		# elif ARG_DOWNLOAD_ALAW_TO_WAV in request.args:
+		# 	return downloadAlaw2Wav()
+
+		# elif ARG_DOWNLOAD_ULAW_TO_WAV in request.args:
+		# 	return downloadUlaw2Wav()
+			
+		return previewFile()
 
 	if not os.path.isabs(request.path):
 		abort(403)
@@ -434,8 +453,6 @@ def browse(*args, **kwargs):
 
 @app.before_first_request
 def setupCommonRoot():
-
-	print ("SETUP")
 	global COMMON_ROOT
 	global SERVE_DIRECTORIES
 
@@ -482,8 +499,6 @@ def setupCommonRoot():
 
 @app.before_first_request
 def loadExtensions():
-
-	print ("EXTENSION")
 	global extensions
 
 	for extension in os.listdir(EXTENSION_DIR):
