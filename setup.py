@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
 	name="sallybrowse",
-	version="1.0.1",
+	version="1.0.2",
 	author="Simon Allen",
 	author_email="author@example.com",
 	description="Easy to use web-based file/directory viewer.",
@@ -22,6 +22,8 @@ setuptools.setup(
 	include_package_data=True,
 	install_requires=[
 		"flask",
+		"boto3",
+		"s3path",
 		"chardet",
 		"pygments",
 		"textblob",
