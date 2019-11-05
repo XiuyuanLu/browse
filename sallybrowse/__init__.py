@@ -30,7 +30,6 @@ if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
 else:
 	SERVE_DIRECTORIES = tuple([
-		# "/Users/nleung/",
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
@@ -54,7 +53,7 @@ def browseS3Dir(path):
 
 def browseDir():
 	entries = []
-	# print (request.path)
+	print (request.path)
 	if request.path.startswith("/s3buckets"):
 		files = browseS3Dir(request.path)
 		for s3object in files:
@@ -114,7 +113,7 @@ def browseDir():
 
 			except:
 				continue
-		if request.path == "/":
+		if "/s3buckets" in SERVE_DIRECTORIES:
 			s3entry = {
 				"dir": "/s3buckets",
 				"name": "s3buckets",
