@@ -22,6 +22,8 @@ setuptools.setup(
 	include_package_data=True,
 	install_requires=[
 		"flask",
+		"boto3",
+		"s3path",
 		"chardet",
 		"pygments",
 		"textblob",
