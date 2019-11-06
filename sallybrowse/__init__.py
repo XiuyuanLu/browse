@@ -29,6 +29,7 @@ if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
 else:
 	SERVE_DIRECTORIES = tuple([
+		"/s3buckets"
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
@@ -129,17 +130,23 @@ def previewFile():
 
 def listDir():
 	paths = []
+	
+
+	curr_path = get_path()
+	
+	if str(curr_path) == "." and str(type(curr_path)) == "<class 's3path.S3Path'>":
+		curr_path = S3Path("/")
+
 
 	try:
-		files = os.listdir(request.path)
-
+		files = curr_path.glob('*')
 	except:
 		files = []
-
+		
 	for file in files:
-		path = os.path.join(request.path, file)
+		path = str(file)
 
-		if not path.startswith(SERVE_DIRECTORIES):
+		if str(type(file)) != "<class 's3path.S3Path'>" and not path.startswith(SERVE_DIRECTORIES):
 			continue
 
 		paths.append(path)
@@ -185,7 +192,7 @@ def downloadDir():
 
 def get_path():
 	path = request.path
-	if path.startswith("/s3buckets/"):
+	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
 		return S3Path(path)
 	else:
@@ -371,9 +378,9 @@ def browse(*args, **kwargs):
 
 	if "/s3buckets" in request.path:
 		#If it's a directory
-		bucket_path = "/{}".format("/".join(request.path.split("/")[2:]))
-		# print (bucket_path)
-		if S3Path(bucket_path).is_dir():
+		bucket_path = get_path()
+		
+		if not bucket_path.name or bucket_path.is_dir():
 			if ARG_DOWNLOAD in request.args:
 				return downloadDir()
 
@@ -383,8 +390,8 @@ def browse(*args, **kwargs):
 			# elif ARG_EXTRA_DIR_INFO in request.args:
 			# 	return getExtraDirInfo()
 
-			# elif ARG_LIST in request.args:
-			# 	return listDir()
+			elif ARG_LIST in request.args:
+				return listDir()
 			return browseDir()
 		if not request.path.startswith("/s3buckets"):
 			abort(403)
