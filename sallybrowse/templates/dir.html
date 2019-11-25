@@ -13,10 +13,6 @@
 			#info {
 				visibility: hidden;
 			}
-/* 
-			#explorer td:nth-of-type(4) {
-				display: none;
-			} */
 
 			#previewFrame {
 				position: absolute;
@@ -171,11 +167,8 @@
 					if (type.indexOf("directory") >= 0 || type.indexOf("S3 Bucket") >= 0) {
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
-						console.log("It s a file :)")
 						showPreview($(e.target).text())
 					}
-
-					e.preventDefault()
 				})
 
 				$(".pathList").click(function (e) {
@@ -237,8 +230,9 @@
 			}
 
 			function showPreview(target) {
-				var url = "{{ request.path }}".replace(/\/$/g, "") + target + "?list"
-
+				
+				var url = "{{ request.path }}".replace(/\/$/g, "") + "/" + target + "?list"
+				
 				$("#previewTitle").text(target || "{{ request.path }}")
 				$("#previewTitle").attr("title", target || "{{ request.path }}")
 				$("#previewFrame").attr("src", url)
@@ -318,13 +312,11 @@
 						y_string = ((n == 2) ? convert_size(y.innerHTML.toLowerCase()) :y.innerHTML.toLowerCase());
 						if (dir == "asc") {
 							if (x_string > y_string) {
-								// If so, mark as a switch and break the loop:
 								shouldSwitch = true;
 								break;
 							}
 						} else if (dir == "desc") {
 							if (x_string < y_string) {
-								// If so, mark as a switch and break the loop:
 								shouldSwitch = true;
 								break;
 							}
@@ -374,6 +366,7 @@
 						<th onclick="sortTable(1)">Name</th>
 						<th class="shrinkColumn" onclick="sortTable(2)">Size</th>
 						<th class="shrinkColumn" onclick="sortTable(3)">Type</th>
+						<th class="shrinkColumn" onclick="sortTable(4)"> Last Modified</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -400,12 +393,13 @@
 							<i class="material-icons copyEntry" title="Copy path">file_copy</i>
 							<i class="material-icons infoEntry" title="Info" style="margin: 0 10px">info</i>
 						</td>
-						<td class="nameColumn"><i class="material-icons-outlined"
-								title="{{ entry['type'] }}">{{ typeIcon }}</i><a class="name" href="{{ path }}"
-								title="{{ path }}">{{ entry["name"] }}</a>
+						<td class="nameColumn">
+							<i class="material-icons-outlined" title="{{ entry['type'] }}">{{ typeIcon }}</i>
+							<a class="name" href="{{ path }}" title="{{ path }}">{{ entry["name"] }}</a>
 						</td>
 						<td class="shrinkColumn">{{ entry["size"] }}</td>
 						<td class="shrinkColumn">{{ entry["type"] }}</td>
+						<td class="shrinkColumn">{{ entry["last_modified"] }}</td>
 					</tr>
 					{% endfor %}
 				</tbody>
