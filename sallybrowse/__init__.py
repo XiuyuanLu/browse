@@ -29,7 +29,6 @@ if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
 else:
 	SERVE_DIRECTORIES = tuple([
-		"/s3buckets"
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
