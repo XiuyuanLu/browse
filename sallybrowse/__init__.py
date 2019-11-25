@@ -121,7 +121,6 @@ def browseDir():
 				"type": "S3 Bucket"
 			}
 			entries.append(s3entry)
-
 	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
 
 def previewFile():
@@ -166,7 +165,7 @@ def downloadDir():
 	def generateChunks(path):
 		stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
 
-		for item in path.glob('*'):
+		for item in path.glob('*.*'):
 			if not item.exists():
 				continue
 			try:
@@ -262,7 +261,7 @@ def getType(path):
 	else:
 		fileType += "other"
 
-	return fileTypd
+	return fileType
 
 def getExtraDirInfo():
 	data = {}
@@ -394,7 +393,6 @@ def browse(*args, **kwargs):
 			elif ARG_LIST in request.args:
 				return listDir()
 			return browseDir()
-
 		if not request.path.startswith("/s3buckets"):
 			abort(403)
 
