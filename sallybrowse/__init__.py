@@ -65,11 +65,12 @@ def browseDir():
 
 				if entry["type"] == "file":
 					entry["bytes"] = s3object.stat().size
-					entry["size"] = naturalsize(s3object.stat().size)
-
+					entry["size"] = naturalsize(s3object.stat().size) 
+					entry["last_modified"] = s3object.stat().last_modified
 				else:
 					entry["bytes"] = "N/A"
 					entry["size"] = "N/A"
+					entry["last_modified"] = "N/A"
 
 				entries.append(entry)
 
@@ -103,10 +104,11 @@ def browseDir():
 				if not os.path.isdir(path) and (os.path.isfile(path) or os.path.islink(path)) and os.path.exists(path):
 					entry["bytes"] = os.path.getsize(path)
 					entry["size"] = naturalsize(entry["bytes"])
-
+					entry["last_modified"] = path.stat().last_modified
 				else:
 					entry["bytes"] = "N/A"
 					entry["size"] = "N/A"
+					entry["last_modified"] = "N/A"
 
 				entries.append(entry)
 
@@ -129,13 +131,10 @@ def previewFile():
 
 def listDir():
 	paths = []
-	
-
 	curr_path = get_path()
 	
 	if str(curr_path) == "." and str(type(curr_path)) == "<class 's3path.S3Path'>":
 		curr_path = S3Path("/")
-
 
 	try:
 		files = curr_path.glob('*')
@@ -144,7 +143,7 @@ def listDir():
 		
 	for file in files:
 		path = str(file)
-
+		
 		if str(type(file)) != "<class 's3path.S3Path'>" and not path.startswith(SERVE_DIRECTORIES):
 			continue
 
@@ -193,6 +192,7 @@ def get_path():
 	path = request.path
 	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
+		
 		return S3Path(path)
 	else:
 		return Path(path)
@@ -200,6 +200,7 @@ def get_path():
 
 def downloadFile():
 	rpath = get_path()
+	
 	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
@@ -374,7 +375,7 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-
+	
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = get_path()
