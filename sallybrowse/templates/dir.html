@@ -13,10 +13,6 @@
 			#info {
 				visibility: hidden;
 			}
-/* 
-			#explorer td:nth-of-type(4) {
-				display: none;
-			} */
 
 			#previewFrame {
 				position: absolute;
@@ -237,7 +233,7 @@
 			}
 
 			function showPreview(target) {
-				var url = "{{ request.path }}".replace(/\/$/g, "") + target + "?list"
+				var url = "{{ request.path }}".replace(/\/$/g, "") + "/" + target + "?list"
 
 				$("#previewTitle").text(target || "{{ request.path }}")
 				$("#previewTitle").attr("title", target || "{{ request.path }}")
@@ -283,65 +279,6 @@
 				$("#infoFrame").attr("src", "")
 				$("#info").css("visibility", "hidden")
 			}
-			
-
-			function convert_size(human_size){
-				var size = 0;
-				var multiply = [1024, 1024*1024, 1024*1024*1024, 1024*1024*1024*1024]
-				if (human_size.includes("kb")){
-					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[0];
-				} else if (human_size.includes("mb")){
-					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[1];
-				} else if (human_size.includes("gb")){
-					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[2];
-				} else if (human_size.includes("tb")){
-					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[3];
-				} else if (human_size.includes("bytes")){
-					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))
-				}
-				return size
-			}
-
-			function sortTable(n) {
-				var table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-				table = document.getElementById("explorer");
-				switching = true;
-				dir = "asc";
-				while (switching) {
-					switching = false;
-					rows = table.rows;
-					for (i = 1; i < (rows.length - 1); i++) {
-						shouldSwitch = false;
-						x = rows[i].getElementsByTagName("TD")[n];
-						y = rows[i + 1].getElementsByTagName("TD")[n];
-						x_string = ((n == 2) ? convert_size(x.innerHTML.toLowerCase()) :x.innerHTML.toLowerCase());
-						y_string = ((n == 2) ? convert_size(y.innerHTML.toLowerCase()) :y.innerHTML.toLowerCase());
-						if (dir == "asc") {
-							if (x_string > y_string) {
-								// If so, mark as a switch and break the loop:
-								shouldSwitch = true;
-								break;
-							}
-						} else if (dir == "desc") {
-							if (x_string < y_string) {
-								// If so, mark as a switch and break the loop:
-								shouldSwitch = true;
-								break;
-							}
-						}
-						}
-						if (shouldSwitch) {
-							rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-							switching = true;
-							switchcount ++;
-						} else {
-							if (switchcount == 0 && dir == "asc") {
-								dir = "desc";
-								switching = true;
-							}
-						}
-					}
-				}
 		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Sallybrowse</title>
@@ -367,13 +304,13 @@
 			</div>
 		</nav>
 		<div id="content">
-			<table class="highlight striped" id="explorer">
+			<table class="highlight striped">
 				<thead>
 					<tr>
 						<th class="shrinkColumn">Actions</th>
-						<th onclick="sortTable(1)">Name</th>
-						<th class="shrinkColumn" onclick="sortTable(2)">Size</th>
-						<th class="shrinkColumn" onclick="sortTable(3)">Type</th>
+						<th>Name</th>
+						<th class="shrinkColumn">Size</th>
+						<th class="shrinkColumn">Type</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -404,7 +341,7 @@
 								title="{{ entry['type'] }}">{{ typeIcon }}</i><a class="name" href="{{ path }}"
 								title="{{ path }}">{{ entry["name"] }}</a>
 						</td>
-						<td class="shrinkColumn">{{ entry["size"] }}</td>
+						<td class="shrinkColumn" title="{{ entry['bytes'] }}">{{ entry["size"] }}</td>
 						<td class="shrinkColumn">{{ entry["type"] }}</td>
 					</tr>
 					{% endfor %}
