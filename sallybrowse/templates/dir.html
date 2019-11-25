@@ -305,7 +305,7 @@
 			</div>
 		</nav>
 		<div id="content">
-			<table class="highlight striped" id="explorer">
+			<table class="highlight striped">
 				<thead>
 					<tr>
 						<th class="shrinkColumn">Actions</th>
@@ -343,7 +343,7 @@
 							<i class="material-icons-outlined" title="{{ entry['type'] }}">{{ typeIcon }}</i>
 							<a class="name" href="{{ path }}" title="{{ path }}">{{ entry["name"] }}</a>
 						</td>
-						<td class="shrinkColumn">{{ entry["size"] }}</td>
+						<td class="shrinkColumn" title="{{ entry['bytes'] }}">{{ entry["size"] }}</td>
 						<td class="shrinkColumn">{{ entry["type"] }}</td>
 						<td class="shrinkColumn">{{ entry["last_modified"] }}</td>
 					</tr>
