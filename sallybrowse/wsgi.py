@@ -10,3 +10,4 @@ def application(environ, start_response):
 	from sallybrowse import app as _app
 
 	return _app(environ, start_response)
+
