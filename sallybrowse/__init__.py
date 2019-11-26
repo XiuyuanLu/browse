@@ -114,11 +114,13 @@ def browseDir():
 
 			except:
 				continue
-		if "/s3buckets" in SERVE_DIRECTORIES and request.path == "/":
+		if request.path == "/":
 			s3entry = {
 				"dir": "/s3buckets",
 				"name": "s3buckets",
-				"type": "S3 Bucket"
+				"type": "directory",
+				"size": "N/A",
+				"last_modified": "N/A",
 			}
 			entries.append(s3entry)
 	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
