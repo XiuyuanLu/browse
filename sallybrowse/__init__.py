@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os, re, importlib, time
+import sys, os, re, importlib, time, datetime
 import boto3, botocore
 
 from io import BytesIO
@@ -89,22 +89,26 @@ def browseDir():
 
 
 		for file in files:
-			path = os.path.join(request.path, file)
+			path = get_path()
+			path = path.joinpath(file)
 
-			if not path.startswith(SERVE_DIRECTORIES):
+			if not str(path).startswith(SERVE_DIRECTORIES):
 				continue
 
 			try:
+
+				path_str = str(path)
 				entry = {
 					"dir": request.path,
 					"name": file,
-					"type": getType(path)
+					"type": getType(path_str)
 				}
 
-				if not os.path.isdir(path) and (os.path.isfile(path) or os.path.islink(path)) and os.path.exists(path):
-					entry["bytes"] = os.path.getsize(path)
+				if not os.path.isdir(path_str) and (os.path.isfile(path_str) or os.path.islink(path_str)) and os.path.exists(path_str):
+					entry["bytes"] = os.path.getsize(path_str)
 					entry["size"] = naturalsize(entry["bytes"])
-					entry["last_modified"] = path.stat().last_modified
+					l_modified = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+					entry["last_modified"] = l_modified
 				else:
 					entry["bytes"] = "N/A"
 					entry["size"] = "N/A"
@@ -112,7 +116,8 @@ def browseDir():
 
 				entries.append(entry)
 
-			except:
+			except Exception as e:
+				print (e)
 				continue
 		if request.path == "/":
 			s3entry = {
@@ -167,8 +172,8 @@ def downloadDir():
 	def generateChunks(path):
 		stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
 
-		for item in path.glob('*.*'):
-			if not item.exists():
+		for item in path.glob('*'):
+			if not item.exists() or item.is_dir():
 				continue
 			try:
 				stream.write_iter((item.name.split('/')[-1]).lstrip("/"), generateFileChunks(item))

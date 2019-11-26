@@ -206,9 +206,6 @@
 
 		</style>
 		<script>
-			window.onbeforeunload = function (e) {
-				$(".loader-wrapper").fadeIn("slow");
-			};
 			$(function () {
 				var parts = "{{ request.path }}".split("/")
 				var path = []
@@ -244,7 +241,6 @@
 					// set a unique id
 					id: 'size',
 					is: function(s, table, cell, $cell) {
-						console.log(s)
 						return false;
 					},
 					format: function(s, table, cell, cellIndex) {
@@ -261,21 +257,23 @@
 				});
 
 				$(".name").click(function (e) {
-					var type = $(e.target).parent().siblings().last().text()
-					
-					if (type.indexOf("directory") >= 0 || type.indexOf("S3 Bucket") >= 0) {
+					var type =$(e.target).parent().siblings().slice(-2, -1).text();
+
+					if (type.indexOf("directory") >= 0) {
+						$(".loader-wrapper").fadeIn("slow");
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
 						showPreview($(e.target).text())
 					}
 
-					$(".loader-wrapper").fadeIn("slow");
+					e.preventDefault()
+
 				})
 
 				$(".pathList").click(function (e) {
 					showPreview("")
 
-					// e.preventDefault()
+					e.preventDefault()
 				})
 
 				$("#previewClose").click(function (e) {
@@ -313,7 +311,6 @@
 					showInfo("{{ request.path }}");
 				})
 			})
-			
 
 			function copy(text) {
 				var path = $("<input>")
