@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os, re, importlib, time
+import sys, os, re, importlib, time, datetime
 import boto3, botocore
 
 from io import BytesIO
@@ -29,7 +29,6 @@ if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
 else:
 	SERVE_DIRECTORIES = tuple([
-		"/s3buckets"
 	# Put the directories you wish to serve here.
 	# If left empty, all directories (/) will be served.
 ])
@@ -66,11 +65,12 @@ def browseDir():
 
 				if entry["type"] == "file":
 					entry["bytes"] = s3object.stat().size
-					entry["size"] = naturalsize(s3object.stat().size)
-
+					entry["size"] = naturalsize(s3object.stat().size) 
+					entry["last_modified"] = s3object.stat().last_modified
 				else:
 					entry["bytes"] = "N/A"
 					entry["size"] = "N/A"
+					entry["last_modified"] = "N/A"
 
 				entries.append(entry)
 
@@ -89,35 +89,43 @@ def browseDir():
 
 
 		for file in files:
-			path = os.path.join(request.path, file)
+			path = get_path()
+			path = path.joinpath(file)
 
-			if not path.startswith(SERVE_DIRECTORIES):
+			if not str(path).startswith(SERVE_DIRECTORIES):
 				continue
 
 			try:
+
+				path_str = str(path)
 				entry = {
 					"dir": request.path,
 					"name": file,
-					"type": getType(path)
+					"type": getType(path_str)
 				}
 
-				if not os.path.isdir(path) and (os.path.isfile(path) or os.path.islink(path)) and os.path.exists(path):
-					entry["bytes"] = os.path.getsize(path)
+				if not os.path.isdir(path_str) and (os.path.isfile(path_str) or os.path.islink(path_str)) and os.path.exists(path_str):
+					entry["bytes"] = os.path.getsize(path_str)
 					entry["size"] = naturalsize(entry["bytes"])
-
+					l_modified = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+					entry["last_modified"] = l_modified
 				else:
 					entry["bytes"] = "N/A"
 					entry["size"] = "N/A"
+					entry["last_modified"] = "N/A"
 
 				entries.append(entry)
 
-			except:
+			except Exception as e:
+				print (e)
 				continue
-		if "/s3buckets" in SERVE_DIRECTORIES and request.path == "/":
+		if request.path == "/":
 			s3entry = {
 				"dir": "/s3buckets",
 				"name": "s3buckets",
-				"type": "S3 Bucket"
+				"type": "directory",
+				"size": "N/A",
+				"last_modified": "N/A",
 			}
 			entries.append(s3entry)
 	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
@@ -130,13 +138,10 @@ def previewFile():
 
 def listDir():
 	paths = []
-	
-
 	curr_path = get_path()
 	
 	if str(curr_path) == "." and str(type(curr_path)) == "<class 's3path.S3Path'>":
 		curr_path = S3Path("/")
-
 
 	try:
 		files = curr_path.glob('*')
@@ -145,7 +150,7 @@ def listDir():
 		
 	for file in files:
 		path = str(file)
-
+		
 		if str(type(file)) != "<class 's3path.S3Path'>" and not path.startswith(SERVE_DIRECTORIES):
 			continue
 
@@ -167,8 +172,8 @@ def downloadDir():
 	def generateChunks(path):
 		stream = ZipFile(mode = "w", compression = ZIP_DEFLATED)
 
-		for item in path.glob('*.*'):
-			if not item.exists():
+		for item in path.glob('*'):
+			if not item.exists() or item.is_dir():
 				continue
 			try:
 				stream.write_iter((item.name.split('/')[-1]).lstrip("/"), generateFileChunks(item))
@@ -194,6 +199,7 @@ def get_path():
 	path = request.path
 	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
+		
 		return S3Path(path)
 	else:
 		return Path(path)
@@ -201,6 +207,7 @@ def get_path():
 
 def downloadFile():
 	rpath = get_path()
+	
 	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
@@ -375,7 +382,7 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-
+	
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = get_path()

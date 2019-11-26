@@ -4,6 +4,8 @@
 		<link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined">
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
 		<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+		<script type="text/javascript" src="{{ url_for('static', filename='jquery.tablesorter.js') }}"></script>
 		<style>
 			* {
 				font-size: +105%;
@@ -98,12 +100,6 @@
 				padding-bottom: 20px;
 			}
 
-			#content table>thead>tr>th {
-				position: sticky;
-				top: 0;
-				background: white;
-			}
-
 			#content table>tbody>tr>td {
 				padding-top: 4px;
 				padding-bottom: 4px;
@@ -126,6 +122,86 @@
 				width: 1px;
 				white-space: nowrap;
 				padding: 0px 20px;
+			}
+
+			.tablesorter-blue .tablesorter-header {
+				position: sticky;
+				top: 0;
+				background: white;
+				white-space: normal;
+				cursor: pointer;
+			}
+
+			.loader {
+				display: inline-block;
+				width: 30px;
+				height: 30px;
+				position: relative; 
+				border: 4px solid #Fff;
+				animation: loader 2s infinite ease;
+			}
+
+			.loader-inner {
+				vertical-align: top;
+				display: inline-block;
+				width: 100%;
+				background-color: #fff;
+				animation: loader-inner 2s infinite ease-in;
+			}
+
+			@keyframes loader {
+				0% {
+					transform: rotate(0deg);
+				}
+				
+				25% {
+					transform: rotate(180deg);
+				}
+				
+				50% {
+					transform: rotate(180deg);
+				}
+				
+				75% {
+					transform: rotate(360deg);
+				}
+				
+				100% {
+					transform: rotate(360deg);
+				}
+			}
+
+			@keyframes loader-inner {
+				0% {
+					height: 0%;
+				}
+				
+				25% {
+					height: 0%;
+				}
+				
+				50% {
+					height: 100%;
+				}
+				
+				75% {
+					height: 100%;
+				}
+				
+				100% {
+					height: 0%;
+				}
+			}
+			.loader-wrapper {
+				width: 100%;
+				height: 100%;
+				position: absolute;
+				top: 0;
+				left: 0;
+				background-color: #242f3f;
+				display:flex;
+				justify-content: center;
+				align-items: center;
 			}
 
 		</style>
@@ -160,18 +236,38 @@
 
 					$("#breadcrumbs").append(crumb)
 				}
+				
+				$.tablesorter.addParser({
+					// set a unique id
+					id: 'size',
+					is: function(s, table, cell, $cell) {
+						return false;
+					},
+					format: function(s, table, cell, cellIndex) {
+						// format your data for normalization
+						return convert_size(s.toLowerCase());
+					},
+					// set type, either numeric or text
+					type: 'numeric'
+				});
+
+				$("#explorer").tablesorter({
+					theme : 'blue',
+					headerTemplate: '{content}{icon}'
+				});
 
 				$(".name").click(function (e) {
-					var type = $(e.target).parent().siblings().last().text()
-					
-					if (type.indexOf("directory") >= 0 || type.indexOf("S3 Bucket") >= 0) {
+					var type =$(e.target).parent().siblings().slice(-2, -1).text();
+
+					if (type.indexOf("directory") >= 0) {
+						$(".loader-wrapper").fadeIn("slow");
 						return
 					} else if (type.indexOf("file") >= 0 || type.indexOf("link") >= 0) {
-						console.log("It s a file :)")
 						showPreview($(e.target).text())
 					}
 
 					e.preventDefault()
+
 				})
 
 				$(".pathList").click(function (e) {
@@ -233,8 +329,9 @@
 			}
 
 			function showPreview(target) {
+				
 				var url = "{{ request.path }}".replace(/\/$/g, "") + "/" + target + "?list"
-
+				
 				$("#previewTitle").text(target || "{{ request.path }}")
 				$("#previewTitle").attr("title", target || "{{ request.path }}")
 				$("#previewFrame").attr("src", url)
@@ -273,12 +370,32 @@
 				}
 			}
 
+			function convert_size(human_size){
+				var size = 0;
+				var multiply = [1024, 1024*1024, 1024*1024*1024, 1024*1024*1024*1024]
+				if (human_size.includes("kb")){
+					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[0];
+				} else if (human_size.includes("mb")){
+					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[1];
+				} else if (human_size.includes("gb")){
+					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[2];
+				} else if (human_size.includes("tb")){
+					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))*multiply[3];
+				} else if (human_size.includes("bytes")){
+					size = parseFloat(human_size.replace(/[^\d\.\s]/g,''))
+				}
+				return size
+			}
+
 			function hideInfo() {
 				$("#infoTitle").text("")
 				$("#infoTitle").attr("title", "")
 				$("#infoFrame").attr("src", "")
 				$("#info").css("visibility", "hidden")
 			}
+			
+
+			
 		</script>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Sallybrowse</title>
@@ -303,14 +420,16 @@
 				<div id="breadcrumbs" class="col s12"></div>
 			</div>
 		</nav>
+
 		<div id="content">
-			<table class="highlight striped">
-				<thead>
+			<table class="tablesorter" id="explorer">
+				<thead class="tablesorter-headerRow">
 					<tr>
-						<th class="shrinkColumn">Actions</th>
-						<th>Name</th>
-						<th class="shrinkColumn">Size</th>
+						<th class="shrinkColumn tablesorter-header">Actions {{ icon }} </th>
+						<th >Name</th>
+						<th class="shrinkColumn sorter-size">Size</th>
 						<th class="shrinkColumn">Type</th>
+						<th class="shrinkColumn">Last Modified</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -337,12 +456,13 @@
 							<i class="material-icons copyEntry" title="Copy path">file_copy</i>
 							<i class="material-icons infoEntry" title="Info" style="margin: 0 10px">info</i>
 						</td>
-						<td class="nameColumn"><i class="material-icons-outlined"
-								title="{{ entry['type'] }}">{{ typeIcon }}</i><a class="name" href="{{ path }}"
-								title="{{ path }}">{{ entry["name"] }}</a>
+						<td class="nameColumn">
+							<i class="material-icons-outlined" title="{{ entry['type'] }}">{{ typeIcon }}</i>
+							<a class="name" href="{{ path }}" title="{{ path }}">{{ entry["name"] }}</a>
 						</td>
 						<td class="shrinkColumn" title="{{ entry['bytes'] }}">{{ entry["size"] }}</td>
 						<td class="shrinkColumn">{{ entry["type"] }}</td>
+						<td class="shrinkColumn">{{ entry["last_modified"] }}</td>
 					</tr>
 					{% endfor %}
 				</tbody>
@@ -362,6 +482,16 @@
 			</div>
 			<iframe id="infoFrame"></iframe>
 		</div>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+
+		<div class="loader-wrapper">
+			<span class="loader"><span class="loader-inner"></span></span>
+		</div>		
+
+		<script>
+			$(window).on("load",function(){
+					$(".loader-wrapper").fadeOut("slow");
+			});
+		</script>
+		
 	</body>
 </html>
