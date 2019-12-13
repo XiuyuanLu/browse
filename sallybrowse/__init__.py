@@ -3,6 +3,7 @@
 import sys, os, re, importlib, time, datetime
 import boto3, botocore
 
+from urllib.parse import quote_plus
 from io import BytesIO
 from pwd import getpwuid
 from grp import getgrgid
@@ -15,7 +16,6 @@ from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
 from pathlib import Path
-from urllib.parse import quote
 
 
 ARG_DOWNLOAD = "dl"
@@ -36,10 +36,19 @@ else:
 ])
 
 app = Flask(__name__, static_url_path = "/static", template_folder = os.path.join(os.path.dirname(__file__), "templates"))
+
 extensions = []
 
 session = boto3.Session()
 s3 = session.resource('s3')
+
+@app.template_filter('urlencode')
+def urlencode(uri):
+	print (quote_plus(uri))
+	return quote_plus(uri)
+	
+app.jinja_env.globals['urlencode'] = urlencode
+
 
 def browseS3Dir(path):
 	if path == "/s3buckets":
@@ -210,7 +219,6 @@ def get_path():
 	path = request.path
 	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
-		
 		return S3Path(path)
 	else:
 		return Path(path)
@@ -393,7 +401,6 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-	request.path = quote(request.path)
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = get_path()

@@ -435,7 +435,7 @@
 				<tbody>
 					{% for entry in entries %}
 					<tr>
-						{% set path = (request.path + "/" + entry["name"]).replace("//", "/") %}
+						{% set path = (request.path + "/" + urlencode(entry["name"])).replace("//", "/") %}
 						{% if "broken link" in entry["type"] %}
 						{% set typeIcon = "link_off" %}
 						{% elif "link" in entry["type"] %}
@@ -492,6 +492,5 @@
 					$(".loader-wrapper").fadeOut("slow");
 			});
 		</script>
-		
 	</body>
 </html>
