@@ -15,7 +15,7 @@ from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
 from pathlib import Path
-from urllib import parse
+from urllib.parse import quote
 
 
 ARG_DOWNLOAD = "dl"
@@ -393,7 +393,7 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-	request.path = parse.quote(request.path)
+	request.path = quote(request.path)
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = get_path()
