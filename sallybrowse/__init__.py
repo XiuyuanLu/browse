@@ -10,11 +10,13 @@ from collections import namedtuple, defaultdict
 from subprocess import Popen, PIPE
 from zipstream import ZipFile, ZIP_DEFLATED
 from humanize import naturalsize
-from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect
+from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect, stream_with_context
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
 from pathlib import Path
+from urllib import parse
+
 
 ARG_DOWNLOAD = "dl"
 ARG_INFO = "info"
@@ -49,34 +51,42 @@ def browseS3Dir(path):
 	
 	return bucket_list
 
+def stream_template(template_name, **context):
+	app.update_template_context(context)
+	t = app.jinja_env.get_template(template_name)
+	rv = t.stream(context)
+	rv.enable_buffering(5)
+	return rv
 
+def generate_rows(files):
+	for s3object in files:
+		try:
+			entry = {
+				"dir": str(s3object),
+				"name": str(s3object).split("/")[-1],
+				"type": "directory" if s3object.is_dir() else "file",
+				"bytes": "N/A",
+				"size": "N/A",
+				"last_modified": "N/A",
+			}
+
+			if entry["type"] == "file":
+				stats = s3object.stat()
+				entry["bytes"] = stats.size
+				entry["size"] = naturalsize(stats.size) 
+				entry["last_modified"] = stats.last_modified
+			# print (entry)
+			yield (entry)
+
+		except Exception as e:
+			print (e)
+			continue
+			
 def browseDir():
 	entries = []
 	
 	if request.path.startswith("/s3buckets"):
-		files = browseS3Dir(request.path)
-		for s3object in files:
-			try:
-				entry = {
-					"dir": str(s3object),
-					"name": str(s3object).split("/")[-1],
-					"type": "directory" if s3object.is_dir() else "file"
-				}
-
-				if entry["type"] == "file":
-					entry["bytes"] = s3object.stat().size
-					entry["size"] = naturalsize(s3object.stat().size) 
-					entry["last_modified"] = s3object.stat().last_modified
-				else:
-					entry["bytes"] = "N/A"
-					entry["size"] = "N/A"
-					entry["last_modified"] = "N/A"
-
-				entries.append(entry)
-
-			except Exception as e:
-				print (e)
-				continue
+		entries = generate_rows(browseS3Dir(request.path))
 	else:
 		try:
 			files = os.listdir(request.path)
@@ -128,7 +138,8 @@ def browseDir():
 				"last_modified": "N/A",
 			}
 			entries.append(s3entry)
-	return render_template("dir.html", entries = sorted(entries, key = lambda entry: entry["name"]))
+		
+	return Response(stream_with_context(stream_template('dir.html', entries=sorted(entries, key = lambda entry: entry["name"]))))
 
 def previewFile():
 	for extension in extensions:
@@ -382,7 +393,7 @@ def infoFile():
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
-	
+	request.path = parse.quote(request.path)
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = get_path()
@@ -509,6 +520,7 @@ def setupCommonRoot():
 
 	COMMON_ROOT = "/".join(commonParts) or "/"
 
+
 @app.before_first_request
 def loadExtensions():
 	global extensions
@@ -519,10 +531,10 @@ def loadExtensions():
 
 			if os.path.isdir(extensionPath):
 				extension = "sallybrowse.extensions.%s" % extension
-
 				extensions.append(importlib.import_module(extension))
 
 	extensions = sorted(extensions, reverse = True, key = lambda extension: extension.Extension.PRIORITY)
 
+
 if __name__ == "__main__":
-	app.run(debug = True)
+	app.run(debug=True)
