@@ -138,8 +138,8 @@ def browseDir():
 				"last_modified": "N/A",
 			}
 			entries.append(s3entry)
-		sorted(entries, key = lambda entry: entry["name"])
-	return Response(stream_with_context(stream_template('dir.html', entries=entries)))
+		
+	return Response(stream_with_context(stream_template('dir.html', entries=sorted(entries, key = lambda entry: entry["name"]))))
 
 def previewFile():
 	for extension in extensions:
