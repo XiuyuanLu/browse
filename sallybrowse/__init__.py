@@ -44,9 +44,9 @@ s3 = session.resource('s3')
 
 @app.template_filter('urlencode')
 def urlencode(uri):
-	print (quote_plus(uri))
+	# print (quote_plus(uri))
 	return quote_plus(uri)
-	
+
 app.jinja_env.globals['urlencode'] = urlencode
 
 
@@ -115,7 +115,6 @@ def browseDir():
 				continue
 
 			try:
-
 				path_str = str(path)
 				entry = {
 					"dir": request.path,
@@ -436,7 +435,7 @@ def browse(*args, **kwargs):
 		# 	return downloadUlaw2Wav()
 			
 		return previewFile()
-
+	request.path = 
 	if not os.path.isabs(request.path):
 		abort(403)
 
