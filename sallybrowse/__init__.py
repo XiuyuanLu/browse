@@ -3,7 +3,7 @@
 import sys, os, re, importlib, time, datetime
 import boto3, botocore
 
-from urllib.parse import quote_plus
+from urllib.parse import quote, unquote
 from io import BytesIO
 from pwd import getpwuid
 from grp import getgrgid
@@ -42,12 +42,11 @@ extensions = []
 session = boto3.Session()
 s3 = session.resource('s3')
 
-@app.template_filter('urlencode')
-def urlencode(uri):
-	# print (quote_plus(uri))
-	return quote_plus(uri)
+@app.template_filter('encode')
+def encode(uri):
+	return quote(uri)
 
-app.jinja_env.globals['urlencode'] = urlencode
+app.jinja_env.globals['encode'] = encode
 
 
 def browseS3Dir(path):
@@ -215,7 +214,7 @@ def downloadDir():
 	
 
 def get_path():
-	path = request.path
+	path = unquote(request.path)
 	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
 		return S3Path(path)
@@ -435,7 +434,7 @@ def browse(*args, **kwargs):
 		# 	return downloadUlaw2Wav()
 			
 		return previewFile()
-	request.path = 
+		
 	if not os.path.isabs(request.path):
 		abort(403)
 
