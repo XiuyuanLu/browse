@@ -150,7 +150,7 @@ def browseDir():
 
 		entries = generate_efs_rows(files)
 
-	return Response(stream_with_context(stream_template('dir.html', entries=sorted(entries, key = lambda entry: entry["name"]))))
+	return Response(stream_with_context(stream_template('dir.html', entries=entries)))
 
 def previewFile():
 	for extension in extensions:
