@@ -120,6 +120,16 @@ def generate_efs_rows(files):
 		except Exception as e:
 			print (e)
 			continue
+	# PATCH FOR S3 FUNCTIONALITY
+	if request.path == "/":
+		s3entry = {
+			"dir": "/s3buckets",
+			"name": "s3buckets",
+			"type": "directory",
+			"size": "N/A",
+			"last_modified": "N/A",
+		}
+		yield (s3entry)
 
 def browseDir():
 	entries = []
@@ -138,21 +148,8 @@ def browseDir():
 			if not os.readlink(request.path).startswith(SERVE_DIRECTORIES):
 				abort(403)
 
-		entries = list(generate_efs_rows(files))
+		entries = generate_efs_rows(files)
 
-		# PATCH FOR S3 FUNCTIONALITY
-		if request.path == "/":
-			s3entry = {
-				"dir": "/s3buckets",
-				"name": "s3buckets",
-				"type": "directory",
-				"size": "N/A",
-				"last_modified": "N/A",
-			}
-			entries.append(s3entry)
-		
-		
-		
 	return Response(stream_with_context(stream_template('dir.html', entries=sorted(entries, key = lambda entry: entry["name"]))))
 
 def previewFile():
