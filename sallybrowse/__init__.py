@@ -66,7 +66,7 @@ def stream_template(template_name, **context):
 	rv.enable_buffering(5)
 	return rv
 
-def generate_rows(files):
+def generate_s3_rows(files):
 	for s3object in files:
 		try:
 			entry = {
@@ -83,18 +83,51 @@ def generate_rows(files):
 				entry["bytes"] = stats.size
 				entry["size"] = naturalsize(stats.size) 
 				entry["last_modified"] = stats.last_modified
-			# print (entry)
 			yield (entry)
 
 		except Exception as e:
 			print (e)
 			continue
 			
+def generate_efs_rows(files):
+	for file in files:
+		path = get_path()
+		path = path.joinpath(file)
+
+		if not str(path).startswith(SERVE_DIRECTORIES):
+			contniue
+
+		try:
+			path_str = str(path)
+			entry = {
+				"dir": request.path,
+				"name": file,
+				"type": getType(path_str)
+			}
+
+			if not os.path.isdir(path_str) and (os.path.isfile(path_str) or os.path.islink(path_str)) and os.path.exists(path_str):
+				entry["bytes"] = os.path.getsize(path_str)
+				entry["size"] = naturalsize(entry["bytes"])
+				l_modified = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
+				entry["last_modified"] = l_modified
+			else:
+				entry["bytes"] = "N/A"
+				entry["size"] = "N/A"
+				entry["last_modified"] = "N/A"
+
+			yield (entry)
+
+		except Exception as e:
+			print (e)
+			continue
+
 def browseDir():
 	entries = []
 	
 	if request.path.startswith("/s3buckets"):
-		entries = generate_rows(browseS3Dir(request.path))
+		if not request.path.startswith(SERVE_DIRECTORIES):
+			abort(403)
+		entries = generate_s3_rows(browseS3Dir(request.path))
 	else:
 		try:
 			files = os.listdir(request.path)
@@ -105,37 +138,9 @@ def browseDir():
 			if not os.readlink(request.path).startswith(SERVE_DIRECTORIES):
 				abort(403)
 
+		entries = list(generate_efs_rows(files))
 
-		for file in files:
-			path = get_path()
-			path = path.joinpath(file)
-
-			if not str(path).startswith(SERVE_DIRECTORIES):
-				continue
-
-			try:
-				path_str = str(path)
-				entry = {
-					"dir": request.path,
-					"name": file,
-					"type": getType(path_str)
-				}
-
-				if not os.path.isdir(path_str) and (os.path.isfile(path_str) or os.path.islink(path_str)) and os.path.exists(path_str):
-					entry["bytes"] = os.path.getsize(path_str)
-					entry["size"] = naturalsize(entry["bytes"])
-					l_modified = datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime('%Y-%m-%d %H:%M')
-					entry["last_modified"] = l_modified
-				else:
-					entry["bytes"] = "N/A"
-					entry["size"] = "N/A"
-					entry["last_modified"] = "N/A"
-
-				entries.append(entry)
-
-			except Exception as e:
-				print (e)
-				continue
+		# PATCH FOR S3 FUNCTIONALITY
 		if request.path == "/":
 			s3entry = {
 				"dir": "/s3buckets",
@@ -145,6 +150,8 @@ def browseDir():
 				"last_modified": "N/A",
 			}
 			entries.append(s3entry)
+		
+		
 		
 	return Response(stream_with_context(stream_template('dir.html', entries=sorted(entries, key = lambda entry: entry["name"]))))
 
