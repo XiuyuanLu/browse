@@ -95,7 +95,7 @@ def generate_efs_rows(files):
 		path = path.joinpath(file)
 
 		if not str(path).startswith(SERVE_DIRECTORIES):
-			contniue
+			continue
 
 		try:
 			path_str = str(path)
