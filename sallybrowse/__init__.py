@@ -140,7 +140,7 @@ def browseDir():
 		entries = generate_s3_rows(browseS3Dir(request.path))
 	else:
 		try:
-			files = os.listdir(request.path)
+			files = sorted(os.listdir(request.path))
 		except:
 			files = []
 
