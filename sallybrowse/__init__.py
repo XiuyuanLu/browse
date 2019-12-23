@@ -3,7 +3,7 @@
 import sys, os, re, importlib, time, datetime
 import boto3, botocore
 
-from urllib.parse import quote, unquote
+from urllib.parse import quote, unquote, unquote_plus
 from io import BytesIO
 from pwd import getpwuid
 from grp import getgrgid
@@ -218,11 +218,12 @@ def downloadDir():
 	
 
 def get_path():
-	path = unquote(request.path)
+	path = request.path
 	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
 		return S3Path(path)
 	else:
+		path = unquote_plus(path)
 		return Path(path)
 
 
@@ -406,7 +407,6 @@ def browse(*args, **kwargs):
 	if "/s3buckets" in request.path:
 		#If it's a directory
 		bucket_path = get_path()
-		
 		if not bucket_path.name or bucket_path.is_dir():
 			if ARG_DOWNLOAD in request.args:
 				return downloadDir()
