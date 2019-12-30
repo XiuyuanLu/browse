@@ -31,7 +31,7 @@ class BaseExtension(object):
 					<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 					<script>
 						$(function () {
-							$.getJSON("%s?extradirinfo", function (data, status, xhr) {
+							$.getJSON(encodeURI("%s?extradirinfo"), function (data, status, xhr) {
 								$("body>b").each(function() {
 									var key = $(this).text().slice(0, -1)
 
