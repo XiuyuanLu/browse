@@ -26,6 +26,7 @@ ARG_DOWNLOAD_ALAW_TO_WAV = "alaw2wavdl"
 ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
 EXTENSION_DIR = os.path.join(os.path.dirname(__file__), "extensions")
 COMMON_ROOT = None # Do not change
+WHITELIST = []
 
 if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
@@ -39,8 +40,21 @@ app = Flask(__name__, static_url_path = "/static", template_folder = os.path.joi
 
 extensions = []
 
-session = boto3.Session()
-s3 = session.resource('s3')
+
+s3_cl = boto3.client('s3')
+s3_re = boto3.resource('s3')
+BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
+
+for bucket in s3_re.buckets.all():
+	s3_bucket_name = bucket.name
+	try:
+		response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
+		for tag in response["TagSet"]:
+			tag = dict(tag)
+			if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
+				WHITELIST.append("/{}".format(s3_bucket_name))
+	except Exception as e:
+		print (e)
 
 @app.template_filter('encode')
 def encode(uri):
@@ -50,9 +64,10 @@ app.jinja_env.globals['encode'] = encode
 
 
 def browseS3Dir(path):
+	global WHITELIST
 	if path == "/s3buckets":
 		p = S3Path('/')
-		bucket_list = [path for path in p.iterdir()]
+		bucket_list = [path for path in p.iterdir() if str(path) in WHITELIST]
 	else:
 		p = S3Path(path.replace("/s3buckets", ""))
 		bucket_list = [path for path in p.iterdir()]
@@ -321,7 +336,7 @@ def getExtraDirInfo():
 	return jsonify(data)
 
 def getInfo():
-	if request.path.startswith("/s3buckets/"):
+	if request.path.startswith("/s3buckets"):
 		bucket_path = get_path()
 		bucket_name, item_path = str(bucket_path.bucket).lstrip("/"), str(bucket_path.key)
 		if bucket_path.is_dir():
@@ -330,7 +345,7 @@ def getInfo():
 				("Type", "directory" if bucket_path.is_dir() else "file"),
 			]
 		else:
-			stats = s3.ObjectSummary(bucket_name, item_path)
+			stats = s3_re.ObjectSummary(bucket_name, item_path)
 			data = [
 				("Path", request.path),
 				("Type", "directory" if bucket_path.is_dir() else "file"),
@@ -401,10 +416,39 @@ def infoFile():
 
 	return BaseExtension().info(getInfo())
 
+def check_s3_perms(s3_bucket_name):
+	global WHITELIST
+	
+	if s3_bucket_name in WHITELIST:
+		return True
+	try:
+		response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
+		for tag in response["TagSet"]:
+			tag = dict(tag)
+			if tag["Key"] == "SallyBrowse":
+				if tag["Key"]["SallyBrowse"] == "No":
+					if s3_bucket_name in WHITELIST:
+						WHITELIST.remove(s3_bucket_name)
+					return True
+				else:
+					WHITELIST.append(s3_bucket_name)
+					return False
+	except Exception as e:
+		print (e)
+	
+
 @app.route("/")
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
+	global WHITELIST
 	if "/s3buckets" in request.path:
+		if request.path == "/s3buckets/":
+			request.path = "/s3buckets"
+		match = re.match(BUCKET_NAME, request.path)
+		if match:
+			match = match.groupdict()
+			if not check_s3_perms(match["bucket"]):
+				abort(403)
 		#If it's a directory
 		bucket_path = get_path()
 		if not bucket_path.name or bucket_path.is_dir():
@@ -428,7 +472,6 @@ def browse(*args, **kwargs):
 			return downloadFile()
 
 		elif ARG_INFO in request.args:
-			# print ("Asking for INFO")
 			return infoFile()
 
 		# elif ARG_DOWNLOAD_ALAW_TO_WAV in request.args:
@@ -544,6 +587,6 @@ def loadExtensions():
 
 	extensions = sorted(extensions, reverse = True, key = lambda extension: extension.Extension.PRIORITY)
 
-
+	
 if __name__ == "__main__":
-	app.run(debug=True)
+	app.run(debug=True, host='0.0.0.0', port=6000)
