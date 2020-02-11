@@ -41,9 +41,9 @@ app = Flask(__name__, static_url_path = "/static", template_folder = os.path.joi
 extensions = []
 
 
-# s3_cl = boto3.client('s3')
-# s3_re = boto3.resource('s3')
-# BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
+s3_cl = boto3.client('s3')
+s3_re = boto3.resource('s3')
+BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
 
 # for bucket in s3_re.buckets.all():
 # 	s3_bucket_name = bucket.name
