@@ -41,20 +41,20 @@ app = Flask(__name__, static_url_path = "/static", template_folder = os.path.joi
 extensions = []
 
 
-s3_cl = boto3.client('s3')
-s3_re = boto3.resource('s3')
-BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
+# s3_cl = boto3.client('s3')
+# s3_re = boto3.resource('s3')
+# BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
 
-for bucket in s3_re.buckets.all():
-	s3_bucket_name = bucket.name
-	try:
-		response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
-		for tag in response["TagSet"]:
-			tag = dict(tag)
-			if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
-				WHITELIST.append("/{}".format(s3_bucket_name))
-	except Exception as e:
-		print (e)
+# for bucket in s3_re.buckets.all():
+# 	s3_bucket_name = bucket.name
+# 	try:
+# 		response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
+# 		for tag in response["TagSet"]:
+# 			tag = dict(tag)
+# 			if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
+# 				WHITELIST.append("/{}".format(s3_bucket_name))
+# 	except Exception as e:
+# 		print (e)
 
 @app.template_filter('encode')
 def encode(uri):
@@ -135,6 +135,7 @@ def generate_efs_rows(files):
 		except Exception as e:
 			print (e)
 			continue
+
 	# PATCH FOR S3 FUNCTIONALITY
 	if request.path == "/":
 		s3entry = {
@@ -509,7 +510,6 @@ def browse(*args, **kwargs):
 
 		if not request.path.startswith(SERVE_DIRECTORIES):
 			abort(403)
-
 		if ARG_DOWNLOAD in request.args:
 			return downloadFile()
 
