@@ -13,11 +13,10 @@ class Extension(BaseExtension):
 
 	def preview(self):
 		response = Response()
-
-		if request.url.lower().endswith((".alaw", ".a8")):
+		if request.url.lower().split("?")[0].endswith((".alaw", ".a8")):
 			suffix = "alaw2wavdl"
 
-		elif request.url.lower().endswith((".ulaw", ".mulaw", ".u8")):
+		elif request.url.lower().split("?")[0].endswith((".ulaw", ".mulaw", ".u8")):
 			suffix = "ulaw2wavdl"
 
 		else:
