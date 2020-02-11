@@ -67,7 +67,8 @@ def browseS3Dir(path):
 	global WHITELIST
 	if path == "/s3buckets":
 		p = S3Path('/')
-		bucket_list = [path for path in p.iterdir() if str(path) in WHITELIST]
+		bucket_list = [path for path in p.iterdir()]
+		#if str(path) in WHITELIST
 	else:
 		p = S3Path(path.replace("/s3buckets", ""))
 		bucket_list = [path for path in p.iterdir()]
@@ -443,13 +444,13 @@ def check_s3_perms(s3_bucket_name):
 def browse(*args, **kwargs):
 	global WHITELIST
 	if "/s3buckets" in request.path:
-		if request.path == "/s3buckets/":
-			request.path = "/s3buckets"
-		match = re.match(BUCKET_NAME, request.path)
-		if match:
-			match = match.groupdict()
-			if not check_s3_perms(match["bucket"]):
-				abort(403)
+		# if request.path == "/s3buckets/":
+		# 	request.path = "/s3buckets"
+		# match = re.match(BUCKET_NAME, request.path)
+		# if match:
+		# 	match = match.groupdict()
+		# 	if not check_s3_perms(match["bucket"]):
+		# 		abort(403)
 		#If it's a directory
 		bucket_path = get_path()
 		if not bucket_path.name or bucket_path.is_dir():
