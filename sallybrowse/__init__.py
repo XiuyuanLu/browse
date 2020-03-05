@@ -27,6 +27,7 @@ ARG_DOWNLOAD_ULAW_TO_WAV = "ulaw2wavdl"
 EXTENSION_DIR = os.path.join(os.path.dirname(__file__), "extensions")
 COMMON_ROOT = None # Do not change
 WHITELIST = []
+TEMP_WHITELIST = ["appensydney-audio4-backups"]
 
 if "SERVE_DIRECTORIES" in os.environ:
 	SERVE_DIRECTORIES = os.environ["SERVE_DIRECTORIES"].split(":")
@@ -47,14 +48,17 @@ BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
 
 for bucket in s3_re.buckets.all():
 	s3_bucket_name = bucket.name
-	try:
-		response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
-		for tag in response["TagSet"]:
-			tag = dict(tag)
-			if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
-				WHITELIST.append("/{}".format(s3_bucket_name))
-	except Exception as e:
-		print (e)
+	if s3_bucket_name in TEMP_WHITELIST:
+		WHITELIST.append("/{}".format(s3_bucket_name))
+	else:
+		try:
+			response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
+			for tag in response["TagSet"]:
+				tag = dict(tag)
+				if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
+					WHITELIST.append("/{}".format(s3_bucket_name))
+		except Exception as e:
+			print (e)
 
 @app.template_filter('encode')
 def encode(uri):
