@@ -62,7 +62,9 @@ for bucket in s3_re.buckets.all():
 
 @app.template_filter('encode')
 def encode(uri):
-	return quote(uri)
+	final_uri = None
+	final_uri = quote(uri)
+	return final_uri
 
 app.jinja_env.globals['encode'] = encode
 
@@ -368,13 +370,13 @@ def getInfo():
 			("Path", request.path),
 			("Type", getType(request.path)),
 			("Last modified", time.ctime(os.path.getmtime(request.path))),
-			("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
+			("Permissions", "0" + oct(os.stat(request.path.encode()).st_mode & 0o777)[2 :])
 		]
 
 	
 	if not request.path.startswith("/s3buckets/"):
-		owner = os.stat(request.path).st_uid
-		group = os.stat(request.path).st_gid
+		owner = os.stat(request.path.encode()).st_uid
+		group = os.stat(request.path.encode()).st_gid
 
 		try:
 			owner = getpwuid(owner).pw_name
@@ -495,7 +497,7 @@ def browse(*args, **kwargs):
 			return redirect(COMMON_ROOT)
 
 		abort(403)
-
+	print ("FAIL:",request.path)
 	if os.path.exists(request.path):
 		if os.path.isdir(request.path):
 			if ARG_DOWNLOAD in request.args:
