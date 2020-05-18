@@ -370,13 +370,13 @@ def getInfo():
 			("Path", request.path),
 			("Type", getType(request.path)),
 			("Last modified", time.ctime(os.path.getmtime(request.path))),
-			("Permissions", "0" + oct(os.stat(request.path.encode()).st_mode & 0o777)[2 :])
+			("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
 		]
 
 	
 	if not request.path.startswith("/s3buckets/"):
-		owner = os.stat(request.path.encode()).st_uid
-		group = os.stat(request.path.encode()).st_gid
+		owner = os.stat(request.path).st_uid
+		group = os.stat(request.path).st_gid
 
 		try:
 			owner = getpwuid(owner).pw_name
