@@ -65,13 +65,11 @@ def encode(uri):
 
 	print (type(uri))
 	print (uri)
-	print ("STR:",isinstance(uri, str))
-	print ("LATIN1:", isinstance(uri, "ISO-8859-1"))
-	print ("UTF8:", isinstance(uri, "utf-8"))
 	uri_return = None
 	try:
 		uri_return = quote(uri)
 	except UnicodeEncodeError:
+		print (uri.decode("latin1").encode())
 		uri_return = quote(uri.encode("utf8"))
 	return uri_return
 
