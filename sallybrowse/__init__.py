@@ -62,11 +62,16 @@ for bucket in s3_re.buckets.all():
 
 @app.template_filter('encode')
 def encode(uri):
+
+	print (type(uri))
+	print (uri)
+	print ("STR:",isintance(uri, str))
+	print ("LATIN1:", isinstance(uri, "ISO-8859-1"))
+	print ("UTF8:", isinstance(uri, "utf-8"))
 	uri_return = None
 	try:
 		uri_return = quote(uri)
 	except UnicodeEncodeError:
-		print (type(uri), uri, uri.encode("ISO-8859-1").decode())
 		uri_return = quote(uri.encode("utf8"))
 	return uri_return
 
