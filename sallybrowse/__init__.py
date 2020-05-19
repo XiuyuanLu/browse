@@ -46,25 +46,28 @@ s3_cl = boto3.client('s3')
 s3_re = boto3.resource('s3')
 BUCKET_NAME = re.compile(".*\/s3buckets(?P<bucket>\/[^\/]*).*")
 
-for bucket in s3_re.buckets.all():
-	s3_bucket_name = bucket.name
-	if s3_bucket_name in TEMP_WHITELIST:
-		WHITELIST.append("/{}".format(s3_bucket_name))
-	else:
-		try:
-			response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
-			for tag in response["TagSet"]:
-				tag = dict(tag)
-				if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
-					WHITELIST.append("/{}".format(s3_bucket_name))
-		except Exception as e:
-			print (e)
+# for bucket in s3_re.buckets.all():
+# 	s3_bucket_name = bucket.name
+# 	if s3_bucket_name in TEMP_WHITELIST:
+# 		WHITELIST.append("/{}".format(s3_bucket_name))
+# 	else:
+# 		try:
+# 			response = s3_cl.get_bucket_tagging(Bucket=s3_bucket_name)
+# 			for tag in response["TagSet"]:
+# 				tag = dict(tag)
+# 				if tag["Key"] == "SallyBrowse" and tag["Value"] == "Yes":
+# 					WHITELIST.append("/{}".format(s3_bucket_name))
+# 		except Exception as e:
+# 			print (e)
 
 @app.template_filter('encode')
 def encode(uri):
-	final_uri = None
-	final_uri = quote(uri)
-	return final_uri
+	# print (uri)
+	uri = uri.encode("utf-8")
+	# print ("AFTER", uri)
+	# print ("QUOTE", quote(uri))
+	# print ("UNQUOTE", unquote_plus(quote(uri)))
+	return quote(uri)
 
 app.jinja_env.globals['encode'] = encode
 
