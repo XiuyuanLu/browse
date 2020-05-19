@@ -11,7 +11,7 @@ from collections import namedtuple, defaultdict
 from subprocess import Popen, PIPE
 from zipstream import ZipFile, ZIP_DEFLATED
 from humanize import naturalsize
-from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect, stream_with_context
+from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect, stream_with_context, g
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
@@ -60,20 +60,15 @@ for bucket in s3_re.buckets.all():
 		except Exception as e:
 			print (e)
 
-@app.template_filter('encode')
-def encode(uri):
 
-	print (type(uri))
-	print (uri)
-	uri_return = None
+@app.before_request
+def parse_path():
 	try:
-		uri_return = quote(uri)
-	except UnicodeEncodeError:
-		print (uri.decode("latin1").encode())
-		uri_return = quote(uri.encode("utf8"))
-	return uri_return
-
-app.jinja_env.globals['encode'] = encode
+		print ("request", request.path)
+		g.path = request.path.encode("ISO-8859-1").decode()
+		print ("gpath", g.path)
+	except Exception:
+		g.path = request.path
 
 
 def browseS3Dir(path):
@@ -100,6 +95,7 @@ def generate_s3_rows(files):
 			entry = {
 				"dir": str(s3object),
 				"name": str(s3object).split("/")[-1],
+				"path": "/s3buckets"+str(s3object),
 				"type": "directory" if s3object.is_dir() else "file",
 				"bytes": "N/A",
 				"size": "N/A",
@@ -128,7 +124,8 @@ def generate_efs_rows(files):
 		try:
 			path_str = str(path)
 			entry = {
-				"dir": request.path,
+				"dir": g.path,
+				"path": quote(path_str),
 				"name": file,
 				"type": getType(path_str)
 			}
@@ -150,10 +147,11 @@ def generate_efs_rows(files):
 			continue
 
 	# PATCH FOR S3 FUNCTIONALITY
-	if request.path == "/":
+	if g.path == "/":
 		s3entry = {
 			"dir": "/s3buckets",
 			"name": "s3buckets",
+			"path": "/s3buckets/",
 			"type": "directory",
 			"size": "N/A",
 			"last_modified": "N/A",
@@ -163,18 +161,18 @@ def generate_efs_rows(files):
 def browseDir():
 	entries = []
 	
-	if request.path.startswith("/s3buckets"):
-		if not request.path.startswith(SERVE_DIRECTORIES):
+	if g.path.startswith("/s3buckets"):
+		if not g.path.startswith(SERVE_DIRECTORIES):
 			abort(403)
-		entries = generate_s3_rows(browseS3Dir(request.path))
+		entries = generate_s3_rows(browseS3Dir(g.path))
 	else:
 		try:
-			files = sorted(os.listdir(request.path))
+			files = sorted(os.listdir(g.path))
 		except:
 			files = []
 
-		if os.path.islink(request.path):
-			if not os.readlink(request.path).startswith(SERVE_DIRECTORIES):
+		if os.path.islink(g.path):
+			if not os.readlink(g.path).startswith(SERVE_DIRECTORIES):
 				abort(403)
 
 		entries = generate_efs_rows(files)
@@ -183,7 +181,7 @@ def browseDir():
 
 def previewFile():
 	for extension in extensions:
-		if extension.Extension.PATTERN.match(request.path):
+		if extension.Extension.PATTERN.match(g.path):
 			return extension.Extension().preview()
 	abort(404)
 
@@ -247,7 +245,8 @@ def downloadDir():
 	
 
 def get_path():
-	path = request.path
+	path = g.path
+
 	if path.startswith("/s3buckets"):
 		path = path.replace("/s3buckets", "")
 		return S3Path(path)
@@ -262,26 +261,26 @@ def downloadFile():
 	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
-	pipe = Popen(("sox", "-t", ".raw", "-e", "a-law", "-c", "1", "-r", "8000", request.path, "-t", "wavpcm", "-"), stdout = PIPE)
+	pipe = Popen(("sox", "-t", ".raw", "-e", "a-law", "-c", "1", "-r", "8000", g.path, "-t", "wavpcm", "-"), stdout = PIPE)
 	out, _ = pipe.communicate()
 
 	if pipe.returncode != 0:
 		abort(404)
 
 	buffer = BytesIO(out)
-	filename = os.path.basename(request.path) + ".wav"
+	filename = os.path.basename(g.path) + ".wav"
 
 	return send_file(buffer, conditional = True, as_attachment = True, attachment_filename = filename)
 
 def downloadUlaw2Wav():
-	pipe = Popen(("sox", "-t", ".raw", "-e", "u-law", "-c", "1", "-r", "8000", request.path, "-t", "wavpcm", "-"), stdout = PIPE)
+	pipe = Popen(("sox", "-t", ".raw", "-e", "u-law", "-c", "1", "-r", "8000", g.path, "-t", "wavpcm", "-"), stdout = PIPE)
 	out, _ = pipe.communicate()
 
 	if pipe.returncode != 0:
 		abort(404)
 
 	buffer = BytesIO(out)
-	filename = os.path.basename(request.path) + ".ulaw"
+	filename = os.path.basename(g.path) + ".ulaw"
 
 	return send_file(buffer, conditional = True, as_attachment = True, attachment_filename = filename)
 
@@ -328,7 +327,7 @@ def getExtraDirInfo():
 	numDirs = 0
 	numLinks = 0
 	
-	for root, dirs, files in os.walk(request.path):
+	for root, dirs, files in os.walk(g.path):
 		numDirs += len(dirs)
 
 		for file in files:
@@ -350,18 +349,18 @@ def getExtraDirInfo():
 	return jsonify(data)
 
 def getInfo():
-	if request.path.startswith("/s3buckets"):
+	if g.path.startswith("/s3buckets"):
 		bucket_path = get_path()
 		bucket_name, item_path = str(bucket_path.bucket).lstrip("/"), str(bucket_path.key)
 		if bucket_path.is_dir():
 			data = [
-				("Path", request.path),
+				("Path", g.path),
 				("Type", "directory" if bucket_path.is_dir() else "file"),
 			]
 		else:
 			stats = s3_re.ObjectSummary(bucket_name, item_path)
 			data = [
-				("Path", request.path),
+				("Path", g.path),
 				("Type", "directory" if bucket_path.is_dir() else "file"),
 				("Last modified", stats.last_modified),
 				("Bytes", stats.size),
@@ -370,20 +369,20 @@ def getInfo():
 				("Owner", stats.owner)
 			]
 	else:
-		if not os.path.exists(request.path):
+		if not os.path.exists(g.path):
 			abort(404)
 
 		data = [
-			("Path", request.path),
-			("Type", getType(request.path)),
-			("Last modified", time.ctime(os.path.getmtime(request.path))),
-			("Permissions", "0" + oct(os.stat(request.path).st_mode & 0o777)[2 :])
+			("Path", g.path),
+			("Type", getType(g.path)),
+			("Last modified", time.ctime(os.path.getmtime(g.path))),
+			("Permissions", "0" + oct(os.stat(g.path).st_mode & 0o777)[2 :])
 		]
 
 	
-	if not request.path.startswith("/s3buckets/"):
-		owner = os.stat(request.path).st_uid
-		group = os.stat(request.path).st_gid
+	if not g.path.startswith("/s3buckets/"):
+		owner = os.stat(g.path).st_uid
+		group = os.stat(g.path).st_gid
 
 		try:
 			owner = getpwuid(owner).pw_name
@@ -399,8 +398,9 @@ def getInfo():
 
 		data.append(("Owner", owner))
 		data.append(("Group", group))
-	if not request.path.startswith("/s3buckets/"):
-		if os.path.isdir(request.path):
+		
+	if not g.path.startswith("/s3buckets/"):
+		if os.path.isdir(g.path):
 			data.append(("Bytes", BaseExtension.AJAX_DIR_BYTES))
 			data.append(("Size", BaseExtension.AJAX_DIR_SIZE))
 			data.append(("Number of files", BaseExtension.AJAX_DIR_NUM_FILES))
@@ -409,14 +409,14 @@ def getInfo():
 
 		else:
 			
-			numBytes = os.path.getsize(request.path)
+			numBytes = os.path.getsize(g.path)
 
 			data.append(("Bytes", numBytes))
 			data.append(("Size", naturalsize(numBytes)))
 
 
-	if not os.path.isdir(request.path) and (os.path.isfile(request.path) or os.path.islink(request.path)) and os.path.exists(request.path):
-		data.append(("Likely MIME type", Magic(mime = True).from_file(request.path)))
+	if not os.path.isdir(g.path) and (os.path.isfile(request-path) or os.path.islink(g.path)) and os.path.exists(g.path):
+		data.append(("Likely MIME type", Magic(mime = True).from_file(g.path)))
 
 	return data
 
@@ -425,7 +425,7 @@ def infoDir():
 
 def infoFile():
 	for extension in extensions:
-		if extension.Extension.PATTERN.match(request.path):
+		if extension.Extension.PATTERN.match(g.path):
 			return extension.Extension().info(getInfo())
 
 	return BaseExtension().info(getInfo())
@@ -455,10 +455,11 @@ def check_s3_perms(s3_bucket_name):
 @app.route("/<path:path>")
 def browse(*args, **kwargs):
 	global WHITELIST
-	if "/s3buckets" in request.path:
-		if request.path == "/s3buckets/":
-			request.path = "/s3buckets"
-		match = re.match(BUCKET_NAME, request.path)
+
+	if "/s3buckets" in g.path:
+		if g.path == "/s3buckets/":
+			g.path = "/s3buckets"
+		match = re.match(BUCKET_NAME, g.path)
 		if match:
 			match = match.groupdict()
 			if not check_s3_perms(match["bucket"]):
@@ -478,7 +479,7 @@ def browse(*args, **kwargs):
 			elif ARG_LIST in request.args:
 				return listDir()
 			return browseDir()
-		if not request.path.startswith("/s3buckets"):
+		if not g.path.startswith("/s3buckets"):
 			abort(403)
 
 		# File stuff now
@@ -496,17 +497,17 @@ def browse(*args, **kwargs):
 			
 		return previewFile()
 		
-	if not os.path.isabs(request.path):
+	if not os.path.isabs(g.path):
 		abort(403)
 
-	if not request.path.startswith(COMMON_ROOT):
-		if request.path == "/":
+	if not g.path.startswith(COMMON_ROOT):
+		if g.path == "/":
 			return redirect(COMMON_ROOT)
 
 		abort(403)
 		
-	if os.path.exists(request.path):
-		if os.path.isdir(request.path):
+	if os.path.exists(g.path):
+		if os.path.isdir(g.path):
 			if ARG_DOWNLOAD in request.args:
 				return downloadDir()
 
@@ -521,7 +522,7 @@ def browse(*args, **kwargs):
 
 			return browseDir()
 
-		if not request.path.startswith(SERVE_DIRECTORIES):
+		if not g.path.startswith(SERVE_DIRECTORIES):
 			abort(403)
 		if ARG_DOWNLOAD in request.args:
 			return downloadFile()

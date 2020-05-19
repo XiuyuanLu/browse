@@ -207,7 +207,7 @@
 		</style>
 		<script>
 			$(function () {
-				var parts = "{{ request.path }}".split("/")
+				var parts = "{{ g.path }}".split("/")
 				var path = []
 
 				parts[0] = "/"
@@ -294,22 +294,22 @@
 				$(".copyEntry").click(function (e) {
 					var name = $(e.target).parent().parent().find(".name").text()
 
-					copy(encodeURI(("{{ request.path }}/" + name).replace(/\/\//g, "/")))
+					copy(encodeURI(("{{ g.path }}/" + name).replace(/\/\//g, "/")))
 				})
 
 				$(".infoEntry").click(function (e) {
 					var name = $(e.target).parent().parent().find(".name").text()
 
-					showInfo(("{{ request.path }}/" + name).replace(/\/\//g, "/"));
+					showInfo(("{{ g.path }}/" + name).replace(/\/\//g, "/"));
 				})
 
 				$(".copyCurrent").click(function (e) {
-					copy(encodeURI("{{ request.path }}"))
-					console.log("LOL",encodeURI("{{ request.path }}"))
+					copy(encodeURI("{{ g.path }}"))
+					console.log("LOL",encodeURI("{{ g.path }}"))
 				})
 
 				$(".infoCurrent").click(function (e) {
-					showInfo("{{ request.path }}");
+					showInfo("{{ g.path }}");
 				})
 			})
 
@@ -329,10 +329,10 @@
 
 			function showPreview(target) {
 				
-				var url = encodeURI("{{ request.path }}".replace(/\/$/g, "") + "/" + target + "?list")
+				var url = encodeURI("{{ g.path }}".replace(/\/$/g, "") + "/" + target + "?list")
 				
-				$("#previewTitle").text(target || "{{ request.path }}")
-				$("#previewTitle").attr("title", target || "{{ request.path }}")
+				$("#previewTitle").text(target || "{{ g.path }}")
+				$("#previewTitle").attr("title", target || "{{ g.path }}")
 				$("#previewFrame").attr("src", url)
 				$("#preview").css("visibility", "visible")
 
@@ -403,7 +403,7 @@
 		<nav id="navigation">
 			<div class="nav-wrapper">
 				<ul>
-					<li><a href="{{ request.path }}?dl"><i class="material-icons"
+					<li><a href="{{ g.path }}?dl"><i class="material-icons"
 								title="Download">cloud_download</i></a></li>
 					<li>
 						<a class="copyCurrent" href="#!"><i class="material-icons" title="Copy path">file_copy</i></a>
@@ -434,7 +434,7 @@
 				<tbody>
 					{% for entry in entries %}
 					<tr>
-						{% set path = encode(request.path + "/" + entry["name"]).replace("//", "/") %}
+						{% set path = entry["path"] %}
 						{% if "broken link" in entry["type"] %}
 						{% set typeIcon = "link_off" %}
 						{% elif "link" in entry["type"] %}
