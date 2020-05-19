@@ -5,11 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
 	name="sallybrowse",
-<<<<<<< HEAD
-	version="1.2.8.9.06",
-=======
-	version="1.2.8.9.05",
->>>>>>> cd1a6dbfdd923ac24f4782e84d3e1c55ed4dc618
+	version="1.2.8.9.07",
 	author="Simon Allen/Nick Leung",
 	author_email="author@example.com",
 	description="Easy to use web-based file/directory viewer.",
