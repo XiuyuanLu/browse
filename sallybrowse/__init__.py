@@ -65,7 +65,11 @@ for bucket in s3_re.buckets.all():
 def parse_path():
 	try:
 		print ("request", request.path)
-		g.path = request.path.encode("ISO-8859-1").decode()
+		try:
+			g.path = request.path.encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode()
+		except UnicodeError as e:
+			print ("NO GPATH ERROR:")
+			print (e)
 		print ("gpath", g.path)
 	except Exception:
 		g.path = request.path
@@ -398,7 +402,7 @@ def getInfo():
 
 		data.append(("Owner", owner))
 		data.append(("Group", group))
-		
+
 	if not g.path.startswith("/s3buckets/"):
 		if os.path.isdir(g.path):
 			data.append(("Bytes", BaseExtension.AJAX_DIR_BYTES))
