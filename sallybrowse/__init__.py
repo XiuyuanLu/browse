@@ -66,7 +66,7 @@ def parse_path():
 	try:
 		print ("request", request.path)
 		try:
-			g.path = request.path.encode("ISO-8859-1").decode()
+			g.path = request.path.encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode()
 		except UnicodeError as e:
 			print ("NO GPATH ERROR:")
 			print (e)
