@@ -497,7 +497,7 @@ def browse(*args, **kwargs):
 			return redirect(COMMON_ROOT)
 
 		abort(403)
-	print ("FAIL:",request.path)
+		
 	if os.path.exists(request.path):
 		if os.path.isdir(request.path):
 			if ARG_DOWNLOAD in request.args:
