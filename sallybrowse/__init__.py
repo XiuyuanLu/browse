@@ -66,7 +66,7 @@ def encode(uri):
 	try:
 		uri_return = quote(uri)
 	except UnicodeEncodeError:
-		print (type(uri), uri)
+		print (type(uri), uri, uri.encode("latin1").decode())
 		uri_return = quote(uri.encode("utf8"))
 	return uri_return
 
