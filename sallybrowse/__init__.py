@@ -68,7 +68,8 @@ def parse_path():
 		try:
 			g.path = request.path.encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode()
 		except UnicodeError as e:
-			g.path = request.path
+			print (e)
+			g.path = request.path.encode("latin1").decode("utf8")
 		print ("gpath", g.path)
 	except Exception:
 		g.path = request.path
