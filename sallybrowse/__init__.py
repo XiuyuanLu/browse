@@ -3,7 +3,7 @@
 import sys, os, re, importlib, time, datetime, logging
 import boto3, botocore
 
-from urllib.parse import quote, unquote, unquote_plus
+from urllib.parse import quote, unquote
 from io import BytesIO
 from pwd import getpwuid
 from grp import getgrgid
@@ -65,10 +65,14 @@ for bucket in s3_re.buckets.all():
 def parse_path():
 	logging.error(("Request", type(request.path), repr(request.path), request.path))
 	try:
-		g.path = request.path.encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode()
-	except UnicodeError as e:
-		logging.exception("Failed to decode request....")
-		g.path = request.path
+		g.path = unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8")
+	except Exception:
+		logging.exception("1) Failed to decode request....")
+		try:
+			g.path = unquote(request.path)
+		except Exception:
+			logging.exception("2) Failed to decode request....")
+			g.path = request.path
 
 	logging.error(("g.path", type(g.path), repr(g.path), g.path))
 
@@ -253,7 +257,6 @@ def get_path():
 		path = path.replace("/s3buckets", "")
 		return S3Path(path)
 	else:
-		path = unquote_plus(path)
 		return Path(path)
 
 
