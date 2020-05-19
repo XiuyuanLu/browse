@@ -66,19 +66,12 @@ def parse_path():
 	logging.error(("Request", type(request.path), repr(request.path), request.path))
 	try:
 		g.path = unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8")
-		print("\n\n-----")
-		print("Request:", request.path)
-		print("(unqote)Request:", unquote(request.path))
-		print("Request 1:", unquote(request.path).encode("utf-8").decode('unicode_escape'))
-		print("Request 2:", unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8"))
-		print("Request 3:", bytes(request.path, "ISO-8859-1").decode("utf-8"))
-		print("Request 4:", bytes(unquote(request.path), "ISO-8859-1").decode("utf-8"))
 	except Exception:
-		logging.exception("1) Failed to decode request....")
+		logging.exception("Failed to decode request....")
 		try:
 			g.path = unquote(request.path)
 		except Exception:
-			logging.exception("2) Failed to decode request....")
+			logging.exception("Failed to decode request.... fallback...")
 			g.path = request.path
 
 	logging.error(("g.path", type(g.path), repr(g.path), g.path))
@@ -124,7 +117,6 @@ def generate_s3_rows(files):
 
 		except Exception:
 			logging.exception("Failed generating folder entry")
-			logging.error(("Failed on:", type(s3object), repr(s3object), s3object))
 			continue
 			
 def generate_efs_rows(files):
@@ -157,8 +149,6 @@ def generate_efs_rows(files):
 			yield (entry)
 
 		except Exception:
-			logging.error(("Path Info:", type(path), repr(path), str(path)))
-			logging.error(("More Info:", get_path(), g.path, file, os.path.join(g.path, file)))
 			logging.exception("Failed generating folder entry")
 			continue
 
