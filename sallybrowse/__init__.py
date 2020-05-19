@@ -63,8 +63,6 @@ for bucket in s3_re.buckets.all():
 
 @app.before_request
 def parse_path():
-	logging.error("Default encoding: {}".format(sys.getdefaultencoding()))
-	logging.error("Preferred encoding: {}".format(sys.getpreferredencoding()))
 	logging.error(("Request", type(request.path), repr(request.path), request.path))
 	try:
 		g.path = unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8")
