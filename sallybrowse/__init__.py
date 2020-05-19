@@ -66,8 +66,8 @@ def encode(uri):
 	try:
 		uri_return = quote(uri)
 	except UnicodeEncodeError:
-		print (type(uri), uri)
-		uri_return = quote(uri, encoding="iso-8859-1")
+		print (type(uri), uri, uri.encode("latin1").decode())
+		uri_return = quote(uri.encode("utf8"))
 	return uri_return
 
 app.jinja_env.globals['encode'] = encode
