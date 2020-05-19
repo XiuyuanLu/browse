@@ -65,7 +65,7 @@ def encode(uri):
 
 	print (type(uri))
 	print (uri)
-	print ("STR:",isintance(uri, str))
+	print ("STR:",isinstance(uri, str))
 	print ("LATIN1:", isinstance(uri, "ISO-8859-1"))
 	print ("UTF8:", isinstance(uri, "utf-8"))
 	uri_return = None
