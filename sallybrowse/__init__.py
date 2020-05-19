@@ -63,14 +63,14 @@ for bucket in s3_re.buckets.all():
 
 @app.before_request
 def parse_path():
-	logging.error("Request", type(request.path), repr(request.path), request.path)
+	logging.error(("Request", type(request.path), repr(request.path), request.path))
 	try:
 		g.path = request.path.encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode()
 	except UnicodeError as e:
 		logging.exception("Failed to decode request....")
 		g.path = request.path
 
-	logging.error("g.path", type(g.path), repr(g.path), g.path)
+	logging.error(("g.path", type(g.path), repr(g.path), g.path))
 
 
 def browseS3Dir(path):
