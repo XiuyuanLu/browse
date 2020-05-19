@@ -71,7 +71,8 @@ def parse_path():
 		print("(unqote)Request:", unquote(request.path))
 		print("Request 1:", unquote(request.path).encode("utf-8").decode('unicode_escape'))
 		print("Request 2:", unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8"))
-		print("Request 3:", unquote(request.path).encode("ISO-8859-1").decode("utf-8"))
+		print("Request 3:", bytes(request.path, "ISO-8859-1").decode("utf-8"))
+		print("Request 4:", bytes(unquote(request.path), "ISO-8859-1").decode("utf-8"))
 	except Exception:
 		logging.exception("1) Failed to decode request....")
 		try:
@@ -135,8 +136,6 @@ def generate_efs_rows(files):
 			continue
 
 		try:
-			logging.error(("Failed on:", type(path), repr(path), str(path)))
-			logging.error(("More:", get_path(), g.path, os.path.join(g.path, file)))
 			path_str = str(path)
 			entry = {
 				"dir": g.path,
@@ -158,6 +157,8 @@ def generate_efs_rows(files):
 			yield (entry)
 
 		except Exception:
+			logging.error(("Path Info:", type(path), repr(path), str(path)))
+			logging.error(("More Info:", get_path(), g.path, file, os.path.join(g.path, file)))
 			logging.exception("Failed generating folder entry")
 			continue
 
