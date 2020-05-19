@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-import sys, os, re, importlib, time, datetime
+import sys, os, re, importlib, time, datetime, logging
 import boto3, botocore
 
 from urllib.parse import quote, unquote, unquote_plus
@@ -63,13 +63,14 @@ for bucket in s3_re.buckets.all():
 
 @app.before_request
 def parse_path():
-	print ("request", request.path)
+	logging.error("Request", type(request.path), repr(request.path), request.path)
 	try:
 		g.path = request.path.encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode()
 	except UnicodeError as e:
-		print (e)
-		g.path = request.path.encode("latin1").decode("utf8")
-	print ("gpath", g.path)
+		logging.exception("Failed to decode request....")
+		g.path = request.path
+
+	logging.error("g.path", type(g.path), repr(g.path), g.path)
 
 
 def browseS3Dir(path):
@@ -96,7 +97,7 @@ def generate_s3_rows(files):
 			entry = {
 				"dir": str(s3object),
 				"name": str(s3object).split("/")[-1],
-				"path": "/s3buckets"+str(s3object),
+				"path": "/s3buckets" + str(s3object),
 				"type": "directory" if s3object.is_dir() else "file",
 				"bytes": "N/A",
 				"size": "N/A",
@@ -110,8 +111,8 @@ def generate_s3_rows(files):
 				entry["last_modified"] = stats.last_modified
 			yield (entry)
 
-		except Exception as e:
-			print (e)
+		except Exception:
+			logging.exception("Failed generating folder entry")
 			continue
 			
 def generate_efs_rows(files):
@@ -143,8 +144,8 @@ def generate_efs_rows(files):
 
 			yield (entry)
 
-		except Exception as e:
-			print (e)
+		except Exception:
+			logging.exception("Failed generating folder entry")
 			continue
 
 	# PATCH FOR S3 FUNCTIONALITY

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
 	name="sallybrowse",
-	version="1.2.8.9.05",
+	version="1.2.8.9.06",
 	author="Simon Allen/Nick Leung",
 	author_email="author@example.com",
 	description="Easy to use web-based file/directory viewer.",
@@ -29,6 +29,6 @@ setuptools.setup(
 		"textblob",
 		"humanize",
 		"python-magic",
-                "zipstream @ https://github.com/garfunkel/python-zipstream/tarball/master"
+		"zipstream @ https://github.com/garfunkel/python-zipstream/tarball/master"
 	]
 )
