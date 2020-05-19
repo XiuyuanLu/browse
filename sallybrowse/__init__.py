@@ -66,6 +66,12 @@ def parse_path():
 	logging.error(("Request", type(request.path), repr(request.path), request.path))
 	try:
 		g.path = unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8")
+		print("\n\n-----")
+		print("Request:", request.path)
+		print("(unqote)Request:", unquote(request.path))
+		print("Request 1:", unquote(request.path).encode("utf-8").decode('unicode_escape'))
+		print("Request 2:", unquote(request.path).encode("ISO-8859-1").decode("utf-8"))
+		print("Request 3:", unquote(request.path).encode("utf-8").decode('unicode_escape').encode("ISO-8859-1").decode("utf-8"))
 	except Exception:
 		logging.exception("1) Failed to decode request....")
 		try:
@@ -117,6 +123,7 @@ def generate_s3_rows(files):
 
 		except Exception:
 			logging.exception("Failed generating folder entry")
+			logging.error(("Failed on:", type(s3object), repr(s3object), s3object))
 			continue
 			
 def generate_efs_rows(files):
@@ -150,6 +157,7 @@ def generate_efs_rows(files):
 
 		except Exception:
 			logging.exception("Failed generating folder entry")
+			logging.error(("Failed on:", type(path), repr(path), path))
 			continue
 
 	# PATCH FOR S3 FUNCTIONALITY
