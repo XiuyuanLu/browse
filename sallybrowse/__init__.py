@@ -62,12 +62,12 @@ for bucket in s3_re.buckets.all():
 
 @app.template_filter('encode')
 def encode(uri):
-	# print (uri)
-	uri = uri.encode("utf-8")
-	# print ("AFTER", uri)
-	# print ("QUOTE", quote(uri))
-	# print ("UNQUOTE", unquote_plus(quote(uri)))
-	return quote(uri)
+	uri_return = None
+	try:
+		uri_return = quote(uri)
+	except UnicodeEncodeError:
+		uri_return = quote(uri, encoding="iso-8859-1")
+	return uri_return
 
 app.jinja_env.globals['encode'] = encode
 
