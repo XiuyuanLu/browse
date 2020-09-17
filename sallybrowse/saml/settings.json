@@ -2,7 +2,7 @@
     "strict": true,
     "debug": true,
     "sp": {
-        "entityId": "https://browser.appen.com.cn/",
+        "entityId": "https://browser.appen.com.cn",
         "assertionConsumerService": {
             "url": "https://browser.appen.com.cn/saml/sso",
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"

@@ -484,7 +484,7 @@ def prepare_flask_request(request):
 @app.route('/saml/sso', methods=['GET', 'POST'])
 def saml():
 	req = prepare_flask_request(request)
-	logging.info(json.dumps(req))
+	logging.error(json.dumps(req))
 	auth = init_saml_auth(req)
 	try:
 		auth.process_response()
@@ -496,7 +496,7 @@ def saml():
 
 	if auth.is_authenticated():
 		logging.info("Admin user logged in: " + json.dumps(auth.get_nameid()))
-		response = make_response(redirect('/'))
+		response = make_response(redirect('https://browser.appen.com.cn/'))
 		cookie_jwt = jwt.encode({'user': auth.get_nameid()}, os.environ.get("COOKIE_SECRET") or app.config.get("COOKIE_SECRET"), algorithm='HS256')
 		response.set_cookie(key='X-AC-Auth', value=cookie_jwt, max_age=28800, secure=True)
 		return response
