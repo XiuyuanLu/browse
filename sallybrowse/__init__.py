@@ -462,7 +462,7 @@ def check_s3_perms(s3_bucket_name):
 
 
 def init_saml_auth(req):
-	auth = OneLogin_Saml2_Auth(req, custom_base_path=app.config['SAML_PATH'])
+	auth = OneLogin_Saml2_Auth(req, custom_base_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), 'saml'))
 	return auth
 
 
