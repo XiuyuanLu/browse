@@ -1,0 +1,30 @@
+{
+    "strict": true,
+    "debug": true,
+    "sp": {
+        "entityId": "https://browser.appen.com.cn/",
+        "assertionConsumerService": {
+            "url": "https://browser.appen.com.cn/saml/sso",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
+        },
+        "singleLogoutService": {
+            "url": "https://aap0931.my.idaptive.app/applogout/appkey/825fc5c0-cf16-4bf5-a145-8dea5852dae5/customerid/AAP0931",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        "x509cert": "x",
+        "privateKey": "y"
+    },
+    "idp": {
+        "entityId": "https://aap0931.my.idaptive.app/825fc5c0-cf16-4bf5-a145-8dea5852dae5",
+        "singleSignOnService": {
+            "url": "https://aap0931.my.idaptive.app/applogin/appKey/825fc5c0-cf16-4bf5-a145-8dea5852dae5/customerId/AAP0931",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "singleLogoutService": {
+            "url": "https://aap0931.my.idaptive.app/applogout/appkey/825fc5c0-cf16-4bf5-a145-8dea5852dae5/customerid/AAP0931",
+            "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+        },
+        "x509cert": "MIIDfzCCAmegAwIBAgIQdhQLTAJdNU6IAiiDAgblPjANBgkqhkiG9w0BAQsFADAkMSIwIAYDVQQDDBlDZW50cmlmeSBDdXN0b21lciBBQVAwOTMxMB4XDTIwMDgyMDAwMjQ0OFoXDTM5MDEwMTAwMDAwMFowMjEwMC4GA1UEAwwnQUFQMDkzMSBBcHBsaWNhdGlvbiBTaWduaW5nIENlcnRpZmljYXRlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlb1P8FiWZp56HYUapyAn83g7XdDv+3YO3rEhR1dTswRLML+6JkGTVhgLFmlWpBrY55k4wZKpKeRAgPTsym39UUwYbLW+1etlILD8WuftzXNw26rpRSmYNZtrFqyF7W/jUDhzj0oqOG/SnxHO4H0he5yEezUOJI8TLSlYxs+yjzvEfoP7UU6lT5kR69ndiWHNZ6JruCx96bMe8UMps5Za6vXTzz3EAFeQ0wnwp5tLB4wjFcjDRNrKozOHglKCjkdLP9kC9nwdALzLphMl4VkUxG0y/CHkWZtQ6AmAxH4DclzlqT1rVXWbiw1pye0bNPpmoDl6Y2PlwBgv3dvQLQdXmwIDAQABo4GeMIGbMBMGCisGAQQBgqZwAQkEBQwDMS4wMBcGCisGAQQBgqZwAQMECQwHQUFQMDkzMTAfBgNVHSMEGDAWgBQppt8bYkq7UEg7fdY8/ZIpq19zMjAdBgNVHQ4EFgQUVvzNH2pOlKU+b/wzWtEe6NXhfl0wDgYDVR0PAQH/BAQDAgWgMBsGCisGAQQBgqZwAQQEDQwLQXBwbGljYXRpb24wDQYJKoZIhvcNAQELBQADggEBAIKaBIFWflfWGc2597pmekv0XTpM0pWw7cNpsT5bSJlEGeTMguV81KOOCabSdQAUj0ON8V6T0HlH5fjKEz3ZAyx32c8ll92yczBURr5HPplt25xEXQVhjSKYdiX7jwmXNiYhJMfAj42pTNR5HyICaTM7G24XUpGbm6Hs10ATjxZir/2kpW8UCPy5+syZBpZyTZqmcLmQvmaBYPODVUSkWJMoUanRTK5mQxhP3MnVSfTf+c1iybDnyte3nGkmmZFyAaiuD+J32tn3flpH+yYs7FOR2TDJwJN9LkR5rlj39lbIeECb1y6aLhy5vkOlvisHbTCoPDvyeuLkjwBXmFfCyFs="
+    }
+}

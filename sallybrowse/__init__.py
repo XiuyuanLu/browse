@@ -11,11 +11,16 @@ from collections import namedtuple, defaultdict
 from subprocess import Popen, PIPE
 from zipstream import ZipFile, ZIP_DEFLATED
 from humanize import naturalsize
-from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect, stream_with_context, g
+from flask import Flask, send_file, escape, request, abort, Response, render_template, jsonify, redirect, stream_with_context, g, make_response
 from magic import Magic
 from sallybrowse.extensions import BaseExtension
 from s3path import S3Path
 from pathlib import Path
+from onelogin.saml2.auth import OneLogin_Saml2_Auth
+from urllib.parse import urlparse
+from functools import wraps
+import json
+import jwt
 
 
 ARG_DOWNLOAD = "dl"
@@ -85,7 +90,7 @@ def browseS3Dir(path):
 	else:
 		p = S3Path(path.replace("/s3buckets", ""))
 		bucket_list = [path for path in p.iterdir()]
-	
+
 	return bucket_list
 
 def stream_template(template_name, **context):
@@ -111,14 +116,14 @@ def generate_s3_rows(files):
 			if entry["type"] == "file":
 				stats = s3object.stat()
 				entry["bytes"] = stats.size
-				entry["size"] = naturalsize(stats.size) 
+				entry["size"] = naturalsize(stats.size)
 				entry["last_modified"] = stats.last_modified
 			yield (entry)
 
 		except Exception:
 			logging.exception("Failed generating folder entry")
 			continue
-			
+
 def generate_efs_rows(files):
 	for file in files:
 		path = get_path()
@@ -166,7 +171,7 @@ def generate_efs_rows(files):
 
 def browseDir():
 	entries = []
-	
+
 	if g.path.startswith("/s3buckets"):
 		if not g.path.startswith(SERVE_DIRECTORIES):
 			abort(403)
@@ -194,7 +199,7 @@ def previewFile():
 def listDir():
 	paths = []
 	curr_path = get_path()
-	
+
 	if str(curr_path) == "." and str(type(curr_path)) == "<class 's3path.S3Path'>":
 		curr_path = S3Path("/")
 
@@ -202,10 +207,10 @@ def listDir():
 		files = curr_path.glob('*')
 	except:
 		files = []
-		
+
 	for file in files:
 		path = str(file)
-		
+
 		if str(type(file)) != "<class 's3path.S3Path'>" and not path.startswith(SERVE_DIRECTORIES):
 			continue
 
@@ -248,7 +253,7 @@ def downloadDir():
 	response.headers["Content-Disposition"] = "attachment; filename=%s" % filename
 
 	return response
-	
+
 
 def get_path():
 	path = g.path
@@ -262,7 +267,7 @@ def get_path():
 
 def downloadFile():
 	rpath = get_path()
-	
+
 	return send_file(rpath.open(mode="rb"), attachment_filename=rpath.name, conditional = True, as_attachment = True)
 
 def downloadAlaw2Wav():
@@ -331,7 +336,7 @@ def getExtraDirInfo():
 	numFiles = 0
 	numDirs = 0
 	numLinks = 0
-	
+
 	for root, dirs, files in os.walk(g.path):
 		numDirs += len(dirs)
 
@@ -384,7 +389,7 @@ def getInfo():
 			("Permissions", "0" + oct(os.stat(g.path).st_mode & 0o777)[2 :])
 		]
 
-	
+
 	if not g.path.startswith("/s3buckets/"):
 		owner = os.stat(g.path).st_uid
 		group = os.stat(g.path).st_gid
@@ -413,7 +418,7 @@ def getInfo():
 			data.append(("Number of directories", BaseExtension.AJAX_DIR_NUM_DIRS))
 
 		else:
-			
+
 			numBytes = os.path.getsize(g.path)
 
 			data.append(("Bytes", numBytes))
@@ -437,7 +442,7 @@ def infoFile():
 
 def check_s3_perms(s3_bucket_name):
 	global WHITELIST
-	
+
 	if s3_bucket_name in WHITELIST:
 		return True
 	try:
@@ -454,10 +459,80 @@ def check_s3_perms(s3_bucket_name):
 					return False
 	except Exception as e:
 		print (e)
-	
+
+
+def init_saml_auth(req):
+	auth = OneLogin_Saml2_Auth(req, custom_base_path=app.config['SAML_PATH'])
+	return auth
+
+
+def prepare_flask_request(request):
+	# If server is behind proxys or balancers use the HTTP_X_FORWARDED fields
+	url_data = urlparse(request.url)
+	return {
+		'https': 'on' if request.scheme == 'https' else 'off',
+		'http_host': request.host,
+		'server_port': url_data.port,
+		'script_name': request.path,
+		'get_data': request.args.copy(),
+		# Uncomment if using ADFS as IdP, https://github.com/onelogin/python-saml/pull/144
+		# 'lowercase_urlencoding': True,
+		'post_data': request.form.copy()
+	}
+
+
+@app.route('/saml/sso', methods=['GET', 'POST'])
+def saml():
+	req = prepare_flask_request(request)
+	logging.info(json.dumps(req))
+	auth = init_saml_auth(req)
+	try:
+		auth.process_response()
+	except Exception as e:
+		logging.error("Auth error: ", e)
+
+	# logging.info("error reason: " + auth.get_last_error_reason())
+	logging.info("auth.is_authenticated() " + str(auth.is_authenticated()))
+
+	if auth.is_authenticated():
+		logging.info("Admin user logged in: " + json.dumps(auth.get_nameid()))
+		response = make_response(redirect('/'))
+		cookie_jwt = jwt.encode({'user': auth.get_nameid()}, os.environ.get("COOKIE_SECRET") or app.config.get("COOKIE_SECRET"), algorithm='HS256')
+		response.set_cookie(key='X-AC-Auth', value=cookie_jwt, max_age=28800, secure=True)
+		return response
+
+	return redirect(os.environ.get("SSO_URL") or app.config.get("SSO_URL"))
+
+
+def requires_auth(fn):
+	@wraps(fn)
+	def decorated(*args, **kwargs):
+
+		# encoded_jwt = request.headers.get("X-Amzn-Oidc-Data")
+		encoded_jwt = request.cookies.get("X-AC-Auth")
+		if encoded_jwt:
+			try:
+				payload = jwt.decode(encoded_jwt, os.environ.get("COOKIE_SECRET") or app.config.get("COOKIE_SECRET"),
+									 algorithms=['HS256'])
+				g.username = payload["user"]
+			except Exception as e:
+				logging.error("decrypt token error: ", e)
+				return redirect(os.environ.get("SSO_URL") or app.config.get("SSO_URL"))
+
+		else:
+			# No data forwarded from load balancer.
+			# Authentication is probably not configured in load balancer or app is hosted locally... or whatever.
+			g.username = "Appen User"
+			return redirect(os.environ.get("SSO_URL") or app.config.get("SSO_URL"))
+
+		return fn(*args, **kwargs)
+
+	return decorated
+
 
 @app.route("/")
 @app.route("/<path:path>")
+@requires_auth
 def browse(*args, **kwargs):
 	global WHITELIST
 
@@ -499,9 +574,9 @@ def browse(*args, **kwargs):
 
 		# elif ARG_DOWNLOAD_ULAW_TO_WAV in request.args:
 		# 	return downloadUlaw2Wav()
-			
+
 		return previewFile()
-		
+
 	if not os.path.isabs(g.path):
 		abort(403)
 
@@ -510,7 +585,7 @@ def browse(*args, **kwargs):
 			return redirect(COMMON_ROOT)
 
 		abort(403)
-		
+
 	if os.path.exists(g.path):
 		if os.path.isdir(g.path):
 			if ARG_DOWNLOAD in request.args:
@@ -584,7 +659,7 @@ def setupCommonRoot():
 			commonParts.append(part)
 
 			i += 1
-			
+
 			continue
 
 		break
@@ -606,6 +681,6 @@ def loadExtensions():
 
 	extensions = sorted(extensions, reverse = True, key = lambda extension: extension.Extension.PRIORITY)
 
-	
+
 if __name__ == "__main__":
 	app.run(debug=True)
