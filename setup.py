@@ -32,3 +32,6 @@ setuptools.setup(
 		"zipstream @ https://github.com/garfunkel/python-zipstream/tarball/master"
 	]
 )
+
+# sudo /opt/python/run/venv/bin/pip install -U pip setuptools
+# sudo /opt/python/run/venv/bin/pip install python3-saml==1.9.0
