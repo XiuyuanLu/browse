@@ -8,3 +8,4 @@ humanize
 python-magic
 git+https://gitlab.com/garfunkel/python-zipstream.git
 python3-saml==1.9.0
+onelogin
