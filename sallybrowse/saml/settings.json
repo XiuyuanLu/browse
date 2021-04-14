@@ -8,7 +8,7 @@
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
         },
         "singleLogoutService": {
-            "url": "https://aap0931.my.idaptive.app/applogout/appkey/825fc5c0-cf16-4bf5-a145-8dea5852dae5/customerid/AAP0931",
+            "url": "https://login.microsoftonline.com/fdf0ccaa-0346-4b63-8c15-21bf34a62d18/saml2",
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
         },
         "NameIDFormat": "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
@@ -16,15 +16,15 @@
         "privateKey": "y"
     },
     "idp": {
-        "entityId": "https://aap0931.my.idaptive.app/825fc5c0-cf16-4bf5-a145-8dea5852dae5",
+        "entityId": "https://sts.windows.net/fdf0ccaa-0346-4b63-8c15-21bf34a62d18/",
         "singleSignOnService": {
-            "url": "https://aap0931.my.idaptive.app/applogin/appKey/825fc5c0-cf16-4bf5-a145-8dea5852dae5/customerId/AAP0931",
+            "url": "https://login.microsoftonline.com/fdf0ccaa-0346-4b63-8c15-21bf34a62d18/saml2",
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
         },
         "singleLogoutService": {
-            "url": "https://aap0931.my.idaptive.app/applogout/appkey/825fc5c0-cf16-4bf5-a145-8dea5852dae5/customerid/AAP0931",
+            "url": "https://login.microsoftonline.com/fdf0ccaa-0346-4b63-8c15-21bf34a62d18/saml2",
             "binding": "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
         },
-        "x509cert": "MIIDfzCCAmegAwIBAgIQdhQLTAJdNU6IAiiDAgblPjANBgkqhkiG9w0BAQsFADAkMSIwIAYDVQQDDBlDZW50cmlmeSBDdXN0b21lciBBQVAwOTMxMB4XDTIwMDgyMDAwMjQ0OFoXDTM5MDEwMTAwMDAwMFowMjEwMC4GA1UEAwwnQUFQMDkzMSBBcHBsaWNhdGlvbiBTaWduaW5nIENlcnRpZmljYXRlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlb1P8FiWZp56HYUapyAn83g7XdDv+3YO3rEhR1dTswRLML+6JkGTVhgLFmlWpBrY55k4wZKpKeRAgPTsym39UUwYbLW+1etlILD8WuftzXNw26rpRSmYNZtrFqyF7W/jUDhzj0oqOG/SnxHO4H0he5yEezUOJI8TLSlYxs+yjzvEfoP7UU6lT5kR69ndiWHNZ6JruCx96bMe8UMps5Za6vXTzz3EAFeQ0wnwp5tLB4wjFcjDRNrKozOHglKCjkdLP9kC9nwdALzLphMl4VkUxG0y/CHkWZtQ6AmAxH4DclzlqT1rVXWbiw1pye0bNPpmoDl6Y2PlwBgv3dvQLQdXmwIDAQABo4GeMIGbMBMGCisGAQQBgqZwAQkEBQwDMS4wMBcGCisGAQQBgqZwAQMECQwHQUFQMDkzMTAfBgNVHSMEGDAWgBQppt8bYkq7UEg7fdY8/ZIpq19zMjAdBgNVHQ4EFgQUVvzNH2pOlKU+b/wzWtEe6NXhfl0wDgYDVR0PAQH/BAQDAgWgMBsGCisGAQQBgqZwAQQEDQwLQXBwbGljYXRpb24wDQYJKoZIhvcNAQELBQADggEBAIKaBIFWflfWGc2597pmekv0XTpM0pWw7cNpsT5bSJlEGeTMguV81KOOCabSdQAUj0ON8V6T0HlH5fjKEz3ZAyx32c8ll92yczBURr5HPplt25xEXQVhjSKYdiX7jwmXNiYhJMfAj42pTNR5HyICaTM7G24XUpGbm6Hs10ATjxZir/2kpW8UCPy5+syZBpZyTZqmcLmQvmaBYPODVUSkWJMoUanRTK5mQxhP3MnVSfTf+c1iybDnyte3nGkmmZFyAaiuD+J32tn3flpH+yYs7FOR2TDJwJN9LkR5rlj39lbIeECb1y6aLhy5vkOlvisHbTCoPDvyeuLkjwBXmFfCyFs="
+        "x509cert": "MIIC8DCCAdigAwIBAgIQFkwsgBC/44VLFWqWj/ISnTANBgkqhkiG9w0BAQsFADA0MTIwMAYDVQQDEylNaWNyb3NvZnQgQXp1cmUgRmVkZXJhdGVkIFNTTyBDZXJ0aWZpY2F0ZTAeFw0yMTA0MTQwMjMzMDBaFw0yNDA0MTQwMjMzMDBaMDQxMjAwBgNVBAMTKU1pY3Jvc29mdCBBenVyZSBGZWRlcmF0ZWQgU1NPIENlcnRpZmljYXRlMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2gZPPHilymnjiaVWBOfXMcobm8OtkGJRHo7AxgnG3iqyxteuYkAMSXeG0fqp4VDKbdPsoWzH21aidCdHFaZwbwmHoYijpFEDtgGFB1v4vcsBvJHEBFHWpSG5DgtsKhzXf8tIgKWoXF9clAu5COnJLK/nGLe0lngPMJ0LIHd4MXlrmdsr92Lxc5pWENfIa1o/VYnVRjkmh/o1zV+0wBrWg/JUJGcCT6BZUxalYDjdexycN/cF8lBdttqvHI46Sb8gbcJ3DzA58UlCjmkzJC8q9jzLKRUjIP6VzSf+7msgvyBKsOWqwvAu7WX9bMpMwkkJ/tIGj3EeJ+cn99P4uEKiQQIDAQABMA0GCSqGSIb3DQEBCwUAA4IBAQC3ahVxFthmphWngqqxgh59mmHdHJZtWL6/BPtdAM6gVvZeZoeiZ7iW4ehmNbqzDOALg7vX79myokhJ6XbXfhZHrWhrNwzKDZ0Q+dQUAcDNmf9ZhJ0zdxgNbpxXZTKsZncnDo7sbTPehzjfBLdjJnRp29ZrhNz+SMmbAvMom875UX0jIj5owqETmp+2xKzwxZ74fVwbegYQmvwTcyqId8dWYtGntQ75UGF5hFTb8W/0dJ2zOtgmh2sp6nPdvitn782ecHuufABRG9pW+dtoWH/7UFjUt8ERNfyiySJd2sA67WnRzymm46r7merINqXEXLzyZKV0GLEAZncy5vGuGe5t"
     }
 }
