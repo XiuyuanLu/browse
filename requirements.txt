@@ -6,6 +6,5 @@ pygments
 textblob
 humanize
 python-magic
-onelogin
 python3-saml==1.9.0
 git+https://gitlab.com/garfunkel/python-zipstream.git
